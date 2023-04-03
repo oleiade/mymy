@@ -9,6 +9,7 @@ homepage = "https://github.com/oleiade/mymy"
 repository = "https://github.com/oleiade/mymy"
 keywords = ["cli", "network", "time"]
 categories = ["command-line-utilities"]
+license-file = "LICENSE"
 
 [[bin]]
 name = "my"
