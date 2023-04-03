@@ -27,7 +27,7 @@ Using the `my` command, you can get the following information about your system:
 
 ```bash
 > my ip
-84.173.77.136
+83.173.75.136
 
 > my dns
 8.8.8.8
@@ -102,5 +102,3 @@ To get a combination of your system's time and date, use the `my datetime` comma
 Contributions are always welcome!
 
 See `contributing.md` for ways to get started.
-
-Please adhere to this project's `code of conduct`.
