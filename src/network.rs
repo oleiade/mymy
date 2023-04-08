@@ -211,6 +211,6 @@ pub struct Interface {
 
 impl Display for Interface {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.name, self.ip)
+        write!(f, "{} {}\n", self.name, self.ip)
     }
 }

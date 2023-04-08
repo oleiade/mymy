@@ -2,103 +2,120 @@
 
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 
-Access the most common information about your system using a single command.
-
-Mymy is a command line tool that provides the most helpful information about your system in a single command. You won't need to remember which command to use or which file to consult to get the information you need. Mymy will do it for you. 
-
-We started this project because, as engineers working on three different operating systems daily, remembering which command to use or which file to open to find out about standard system information was a pain. We wanted to have a single command that would give us the information we needed without having to remember anything.
+mymy is a user-friendly command-line application designed to help users gather information about their system quickly, intuitively, and easily. Instead of using multiple tools to access various system details, this single tool consolidates all the important information you need.
 
 ## Features
 
-Using the `my` command, you can get the following information about your system:
-- your current IP address using the `my ip` command
-- your system's configured DNS servers using the `my dns` command
-- your system's time, and its offset to a reference clock server using the `my time` command.
-- your system's configured date using the `my date` command.
-- a combination of your system's time and date using the `my datetime` command.
+The main commands available in the mymy are:
+- `ips`: Find out all the IP addresses allocated to your system, including local and external ones.
+- `dns`: Discover your system's configured DNS server.
+- `date`: Consult your system's configured date in a human-readable format.
+- `time`: Consult your system's configured time and get the offset from the central NTP clock server.
+- `datetime`: A combination of the `date` and `time` commands.
+- `hostname`: Retrieve your system's hostname.
+- `username`: Find out your current user's system username.
+- `device-name`: Get your device's configured name.
+- `os`: Identify the operating system your system is running.
+- `architecture`: Determine your CPU's architecture.
+- `interfaces`: List all the network interfaces configured on your system.
 
-## Installation
+## Benefits
+
+mymy eliminates the need to remember multiple commands and their specific syntax, as well as searching through different files for specific information. Additionally, this tool is multi-platform, making it even more convenient for users across different operating systems (MacOS, Linux, Windows).
+
+## Getting Started
+
+To use mymy, follow these steps:
+
+1. Install the tool by running the `cargo install mymy` command.
+2. Open a terminal or command prompt.
+3. Use any of the commands mentioned in the Features section, preceded by the name of the executable.
+
+### Example Usage
+
+Here are some example usages of the System Information Tool commands:
 
 ```bash
-    cargo install mymy
-```
-    
-## Usage/Examples
+$ my ips
+public	84.172.75.134
+local	192.168.2.246
 
-```bash
-> my ip
-83.173.75.136
-
-> my dns
-8.8.8.8
+$ my dns
 1.1.1.1
+8.8.8.8
 192.168.1.1
 
-> my time
-09:35:59 +02:00
-±0.0276 seconds
+$ my date
+Saturday, 8 April, 2023, week 14
 
-> my date
-Monday, 03 April, 2023, week 14
+$ my time
+20:51:42 UTC +02:00
+±0.0795 seconds
 
-> my datetime
-09:36:28 +02:00, Monday, 03 April, 2023, week 14
-±0.0277 seconds
+$ my datetime
+Saturday, 8 April, 2023, week 14
+20:51:53 UTC +02:00
+±0.0801 seconds
+
+$ my hostname
+oleiades-laptop.local
+
+$ my username
+oleiade
+
+$ my device-name
+Oleiade's Laptop
+
+$ my os
+macOS 13.2.1
+
+$ my architecture
+arm64
+
+$ my interfaces
+lo0 127.0.0.1
+lo0 ::1
+en0 192.168.2.242
 ```
 
-## How to use
+# Contributing
 
-### IP address
+We appreciate your interest in contributing to our project! This is a small, open-source Rust project, and we welcome contributions from developers of all skill levels. To ensure a smooth and enjoyable experience for everyone involved, please take a moment to read through these guidelines before getting started.
 
-To get your current IP address, use the `my ip` command.
+## Getting Started
 
+1. **Fork the repository**: Start by forking the project to your own GitHub account. This will create a personal copy of the repository that you can work on.
+2. **Clone the repository**: Clone your forked repository to your local machine. You can do this by running the following command:
 ```bash
-> my ip
-84.173.77.136
+git clone https://github.com/your-username/mymy.git
 ```
-
-### DNS servers
-
-To get your system's configured DNS servers, use the `my dns` command.
-
+3. **Create a new branch**: Create a new branch for your changes. Keep the branch name descriptive and concise. For example:
 ```bash
-> my dns
-8.8.8.8
-1.1.1.1
-192.168.1.1
+git checkout -b feature/add-new-command
 ```
-
-### Time
-
-To get your system's time, and its offset to a reference clock server, use the `my time` command.
-
+4. **Make your changes**: Implement the new feature or fix the bug you've identified. Remember to follow the project's coding style and conventions.
+5. **Commit your changes**: Once you've made your changes, commit them with a clear and descriptive commit message. This helps other contributors understand the purpose of your changes.
 ```bash
-> my time
-09:35:59 +02:00
-±0.0276 seconds
+git commit -m "Add a new command for displaying system memory usage"
 ```
-
-### Date
-
-To get your system's configured date, use the `my date` command.
-
+6. **Push your changes**: Push your changes to your forked repository on GitHub.
 ```bash
-> my date
-Monday, 03 April, 2023, week 14
+git push origin feature/add-new-command
 ```
+7. **Submit a pull request**: Finally, create a pull request from your forked repository to the main project repository. Provide a clear and concise description of the changes you've made and the purpose of your pull request.
 
-### Date and time
+## Contribution Best Practices
 
-To get a combination of your system's time and date, use the `my datetime` command.
+- Always work on a new branch starting from the `develop` branch when making changes. Avoid making changes directly to the `main` branch.
+- Keep your pull requests focused on a single feature or bugfix. If you have multiple unrelated changes, submit separate pull requests for each.
+- Make sure your code is properly formatted and follows the project's coding style and conventions.
+- Write clear and concise commit messages that describe the purpose of your changes.
+- If you're fixing a bug, please provide a detailed description of the bug and steps to reproduce it.
 
-```bash
-> my datetime
-09:36:28 +02:00, Monday, 03 April, 2023, week 14
-±0.0277 seconds
-```
+## Reporting Bugs or Requesting Features
 
-## Contributing
+If you encounter any bugs or have a feature request, please open a new issue on the project's GitHub page. Be sure to provide a clear and concise description of the issue or feature request, and include any relevant information, such as error messages or steps to reproduce the issue.
 
-Contributions are always welcome!
+## License
 
-See `contributing.md` for ways to get started.
+This project is licensed under the AGPL-3.0 license. For more information, see the [LICENSE](LICENSE) file.
