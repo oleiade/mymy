@@ -3,7 +3,15 @@ use std::fmt::Display;
 use anyhow::Result;
 use serde::ser::{Serialize, SerializeMap, Serializer};
 
-
+/// Named is an enum that represents a named value.
+///
+/// It is used to represent the output of a command, while also
+/// providing a name for the value.
+///
+/// That is to say, it is used to represent the output of a command
+/// that returns a single value, but also provides a name for that
+/// value. So that the output can be serialized to JSON in a meaningful
+/// way, for example.
 pub enum Named {
     Hostname(String),
     Username(String),
@@ -47,6 +55,8 @@ impl Serialize for Named {
     }
 }
 
+/// create_named is a function that creates a Named enum from a function
+/// that returns a String.
 pub async fn create_named<F, Fut>(func: F, data_type: &'static str) -> Result<Named>
 where
     F: FnOnce() -> Fut,
@@ -59,6 +69,6 @@ where
         "devicename" => Ok(Named::DeviceName(value)),
         "os" => Ok(Named::Os(value)),
         "architecture" => Ok(Named::Architecture(value)),
-        _ => panic!("Invalid data type: {}", data_type)
+        _ => panic!("Invalid data type: {}", data_type),
     }
 }

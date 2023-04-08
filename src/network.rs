@@ -2,16 +2,51 @@ use std::fmt::{Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use anyhow::Result;
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{TokioAsyncResolver, TokioHandle, system_conf};
+use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle};
 
+#[derive(Serialize)]
+pub struct IpReport {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    public: Option<IpAddr>,
 
-/// The openDNS server host.
-///
-/// This constant is used as a default to query the public IP address
-pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
+    #[serde(skip_serializing_if = "Option::is_none")]
+    local: Option<IpAddr>,
+}
+
+impl Display for IpReport {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if let Some(public) = &self.public {
+            write!(f, "public\t{}", public)?;
+        }
+
+        if let Some(local) = &self.local {
+            write!(f, "local\t{}", local)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// A categorized IP address.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Ip {
+    /// The IP address.
+    #[serde(rename(serialize = "ip", deserialize = "ip"))]
+    pub address: IpAddr,
+
+    /// The category of the IP address.
+    pub category: IpCategory,
+}
+
+impl Display for Ip {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}\t{}", self.category, self.address)
+    }
+}
 
 /// Queries the public IP address from the provided dns server.
 /// Only an IPv4 address is returned.
@@ -58,27 +93,39 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
     Ok(IpAddr::V4(*ipv4))
 }
 
-/// And IP address and its geographical location.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Ip {
-    /// The IP address.
-    #[serde(rename(serialize = "ip", deserialize = "ip"))]
-    pub address: IpAddr,
+/// The default DNS server port.
+///
+/// This constant is used as a default to query the public IP address
+pub const DNS_DEFAULT_PORT: u16 = 53;
 
-    /// The country name.
-    pub country: String,
+/// The openDNS server host.
+///
+/// This constant is used as a default to query the public IP address
+pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
 
-    /// The country code in [ISO 3166-1 alpha-2 format](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2).
-    #[serde(rename(deserialize = "cc"))]
-    pub country_code: String,
-}
-
-impl Display for Ip {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "ip: {}\tcountry: {}\tcountry code: {}", self.address, self.country, self.country_code)
-    }
-}
-
+/// Lists the DNS servers from the system configuration.
+///
+/// The DNS servers are returned as a list of IP addresses.
+/// The DNS servers are deduplicated.
+/// The DNS servers are returned in the order they are defined in the system configuration.
+///
+/// # Returns
+///
+/// The DNS servers:
+///   * The DNS servers are returned as a list of IP addresses.
+///   * The DNS servers are deduplicated.
+///   * The DNS servers are returned in the order they are defined in the system configuration.
+///
+/// # Errors
+///
+/// If the system configuration cannot be read.
+///
+/// # Examples
+///
+/// ```
+/// let dns_servers = ip::list_dns_servers().unwrap();
+/// println!("dns servers: {:?}", dns_servers);
+/// ```
 pub async fn list_dns_servers() -> Result<Vec<String>> {
     let (conf, _) = system_conf::read_system_conf()?;
     let mut nameservers = conf
@@ -99,6 +146,46 @@ pub async fn list_dns_servers() -> Result<Vec<String>> {
     Ok(nameservers)
 }
 
+/// Holds the category of an IP address. The category can be public, local or any.
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Serialize, ValueEnum)]
+pub enum IpCategory {
+    #[clap(name = "public")]
+    Public,
+
+    #[clap(name = "local")]
+    Local,
+
+    #[clap(name = "any")]
+    Any,
+}
+
+impl Display for IpCategory {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IpCategory::Public => write!(f, "public"),
+            IpCategory::Local => write!(f, "local"),
+            IpCategory::Any => write!(f, "*"),
+        }
+    }
+}
+
+/// Lists the network interfaces of the system.
+///
+/// # Returns
+///
+/// A vector holding the network interfaces.
+/// The network interfaces are returned in the order they are defined in the system configuration.
+///
+/// # Errors
+///
+/// If the system configuration cannot be read.
+///
+/// # Examples
+///
+/// ```
+/// let interfaces = ip::list_interfaces().unwrap();
+/// println!("interfaces: {:?}", interfaces);
+/// ```
 pub async fn interfaces() -> Result<Vec<Interface>> {
     spawn_blocking(|| get_if_addrs::get_if_addrs())
         .await??
@@ -112,9 +199,13 @@ pub async fn interfaces() -> Result<Vec<Interface>> {
         })
 }
 
+/// A network interface.
 #[derive(Serialize)]
 pub struct Interface {
+    /// The name of the network interface.
     name: String,
+
+    /// The IP address of the network interface.
     ip: String,
 }
 

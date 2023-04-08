@@ -5,6 +5,7 @@ use chrono::{DateTime, Local};
 use rsntp::AsyncSntpClient;
 use serde::Serialize;
 
+/// Returns the system date.
 pub async fn date() -> Result<Date> {
     let dt = Local::now();
     let now_with_tz = dt.with_timezone(&Local);
@@ -42,12 +43,12 @@ impl From<DateTime<Local>> for Date {
     }
 }
 
+/// Returns the system time.
 pub async fn time() -> Result<Time> {
     let sntp_client = AsyncSntpClient::new();
     let sntp_time = sntp_client.synchronize("pool.ntp.org").await?;
     let now = sntp_time.datetime().into_chrono_datetime()?;
     let now_with_tz = now.with_timezone(&Local);
-
 
     let mut t = Time::from(now_with_tz);
     t.offset = sntp_time.clock_offset().as_secs_f64();
@@ -86,6 +87,7 @@ impl From<DateTime<Local>> for Time {
     }
 }
 
+/// Returns the system date and time.
 pub async fn datetime() -> Result<Datetime> {
     let date = date().await?;
     let time = time().await?;

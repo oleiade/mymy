@@ -1,16 +1,18 @@
+use std::fmt::Display;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
-
+use serde::{Serialize, Serializer};
 
 mod country;
 mod datetime;
-mod output;
 mod network;
+mod output;
 mod system;
 
 #[derive(Parser, Debug)]
 #[command(name = "my")]
-#[command(about = "Find out about your setup", long_about = None)]
+#[command(about = "Find out common information about your system", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -22,9 +24,9 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum Commands {
     #[command(name = "ips", about = "Find out your IP addresses", long_about = None)]
-    Ips{
+    Ips {
         #[arg(long)]
-        only: Option<IpSelection>,
+        only: Option<network::IpCategory>,
     },
 
     #[command(name = "dns", about = "Find out your DNS servers", long_about = None)]
@@ -58,203 +60,151 @@ enum Commands {
     Interfaces,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-enum IpSelection {
-    #[clap(name = "public")]
-    Public,
-
-    #[clap(name = "local")]
-    Local,
-
-    #[clap(name = "all")]
-    All,
-}
-
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse the CLI arguments
     let args = Cli::parse();
 
-
     // Execute the appropriate command
-    match args.command {
-        Commands::Date => {
-            let date = datetime::date().await?;
+    let result: CommandResult = match args.command {
+        Commands::Date => CommandResult::Date(datetime::date().await?),
+        Commands::Time => CommandResult::Time(datetime::time().await?),
+        Commands::Datetime => CommandResult::Datetime(datetime::datetime().await?),
+        Commands::Dns => CommandResult::Dns(network::list_dns_servers().await?),
+        Commands::Ips { only } => match only {
+            Some(network::IpCategory::Public) => {
+                let public_ip = network::query_public_ip(
+                    network::OPENDNS_SERVER_HOST,
+                    network::DNS_DEFAULT_PORT,
+                )
+                .await?;
+                CommandResult::Ips(vec![network::Ip {
+                    category: network::IpCategory::Public,
+                    address: public_ip,
+                }])
+            }
+            Some(network::IpCategory::Local) => {
+                let local_ip = local_ip_address::local_ip().unwrap();
+                CommandResult::Ips(vec![network::Ip {
+                    category: network::IpCategory::Local,
+                    address: local_ip,
+                }])
+            }
+            Some(network::IpCategory::Any) | None => {
+                let public_ip = network::query_public_ip(
+                    network::OPENDNS_SERVER_HOST,
+                    network::DNS_DEFAULT_PORT,
+                )
+                .await?;
+                let local_ip = local_ip_address::local_ip().unwrap();
 
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&date)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    println!("{}", date);
-                },
+                CommandResult::Ips(vec![
+                    network::Ip {
+                        category: network::IpCategory::Public,
+                        address: public_ip,
+                    },
+                    network::Ip {
+                        category: network::IpCategory::Local,
+                        address: local_ip,
+                    },
+                ])
             }
         },
-        Commands::Time => {
-            let time = datetime::time().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&time)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    println!("{}", time);
-                },
-            }
-        },
-        Commands::Datetime => {
-            let dt = datetime::datetime().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&dt)?;
-                    print!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    print!("{}", dt);
-                },
-            }
-        },
-        Commands::Dns => {
-            let nameservers = network::list_dns_servers().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&nameservers)?;
-                    println!("{}", json_repr)
-                },
-                OutputFormat::Text => {
-                    nameservers.iter().for_each(|ns| println!("{}", ns))
-                },
-            }
-        },
-        Commands::Ips { only } => {
-            ips(args.output).await?
-        }
-        Commands::Hostname => {
-            let hostname = system::hostname().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&hostname)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    println!("{}", hostname);
-                },
-            }
-        },
-        Commands::Username => {
-            let username = system::username().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&username)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    println!("{}", username);
-                },
-            }
-        },
-        Commands::DeviceName => {
-            let devicename = system::device_name().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&devicename)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    println!("{}", devicename);
-                },
-            }
-        },
-        Commands::Os => {
-            let os = system::os().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&os)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    println!("{}", os);
-                },
-            }
-        },
-        Commands::Architecture => {
-            let arch = system::architecture().await?;
-
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&arch)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    println!("{}", arch);
-                },
-            }
-        },
-        Commands::Interfaces => {
-            let interfaces = network::interfaces().await?;
-            match args.output {
-                OutputFormat::Json => {
-                    let json_repr = serde_json::to_string_pretty(&interfaces)?;
-                    println!("{}", json_repr);
-                },
-                OutputFormat::Text => {
-                    interfaces.iter().for_each(|interface| println!("{}", interface));
-                },
-            }
-        },
+        Commands::Hostname => CommandResult::Hostname(system::hostname().await?),
+        Commands::Username => CommandResult::Username(system::username().await?),
+        Commands::DeviceName => CommandResult::DeviceName(system::device_name().await?),
+        Commands::Os => CommandResult::Os(system::os().await?),
+        Commands::Architecture => CommandResult::Architecture(system::architecture().await?),
+        Commands::Interfaces => CommandResult::Interfaces(network::interfaces().await?),
     };
 
+    match args.output {
+        OutputFormat::Json => {
+            let json_repr = serde_json::to_string_pretty(&result)?;
+            println!("{}", json_repr);
+        }
+        OutputFormat::Text => {
+            println!("{}", result);
+        }
+    }
+
     Ok(())
+}
+
+/// CommandResult holds the result of a command.
+///
+/// This is used to facilitate factorizing the command execution,
+/// and allow handling the serializing of the result into the desired output format
+/// in a single place.
+enum CommandResult {
+    Ips(Vec<network::Ip>),
+    Dns(Vec<String>),
+    Date(datetime::Date),
+    Time(datetime::Time),
+    Datetime(datetime::Datetime),
+    Hostname(output::Named),
+    Username(output::Named),
+    DeviceName(output::Named),
+    Os(output::Named),
+    Architecture(output::Named),
+    Interfaces(Vec<network::Interface>),
+}
+
+impl Display for CommandResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CommandResult::Ips(ips) => {
+                let ips = ips.iter().map(ToString::to_string).collect::<Vec<String>>();
+                write!(f, "{}", ips.join("\n"))
+            }
+            CommandResult::Dns(dns) => {
+                write!(f, "{}", dns.join("\n"))
+            }
+            CommandResult::Date(date) => date.fmt(f),
+            CommandResult::Time(time) => time.fmt(f),
+            CommandResult::Datetime(datetime) => datetime.fmt(f),
+            CommandResult::Hostname(hostname) => hostname.fmt(f),
+            CommandResult::Username(username) => username.fmt(f),
+            CommandResult::DeviceName(device_name) => device_name.fmt(f),
+            CommandResult::Os(os) => os.fmt(f),
+            CommandResult::Architecture(architecture) => architecture.fmt(f),
+            CommandResult::Interfaces(interfaces) => {
+                write!(
+                    f,
+                    "{}",
+                    interfaces
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<String>()
+                )
+            }
+        }
+    }
+}
+
+impl Serialize for CommandResult {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            CommandResult::Ips(ips) => ips.serialize(serializer),
+            CommandResult::Dns(dns) => dns.serialize(serializer),
+            CommandResult::Date(date) => date.serialize(serializer),
+            CommandResult::Time(time) => time.serialize(serializer),
+            CommandResult::Datetime(datetime) => datetime.serialize(serializer),
+            CommandResult::Hostname(hostname) => hostname.serialize(serializer),
+            CommandResult::Username(username) => username.serialize(serializer),
+            CommandResult::DeviceName(device_name) => device_name.serialize(serializer),
+            CommandResult::Os(os) => os.serialize(serializer),
+            CommandResult::Architecture(architecture) => architecture.serialize(serializer),
+            CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
+        }
+    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum OutputFormat {
     Json,
     Text,
-}
-
-
-
-async fn ips(output: OutputFormat) -> Result<()> {
-    public_ip(output).await?;
-    local_ip(output).await?;
-
-    Ok(())
-}
-
-async fn public_ip(output: OutputFormat) -> Result<()> {
-    let public_ip = network::query_public_ip(network::OPENDNS_SERVER_HOST, 53).await?;
-
-    match output {
-        OutputFormat::Json => {
-            let json_repr = serde_json::to_string_pretty(&public_ip)?;
-            Ok(println!("{}", json_repr))
-        },
-        OutputFormat::Text => {
-            Ok(println!("{}", public_ip))
-        }
-    }
-}
-
-async fn local_ip(output: OutputFormat) -> Result<()> {
-    let ip = local_ip_address::local_ip().unwrap();
-
-    match output {
-        OutputFormat::Json => {
-            let json_repr = serde_json::to_string_pretty(&ip)?;
-            Ok(println!("{}", json_repr))
-        },
-        OutputFormat::Text => {
-            Ok(println!("{}", ip))
-        }
-    }
 }
