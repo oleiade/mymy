@@ -1,12 +1,12 @@
 use anyhow::Result;
-use chrono::Local;
 use clap::{Parser, Subcommand, ValueEnum};
-use rsntp::AsyncSntpClient;
-use trust_dns_resolver::system_conf;
 
 
 mod country;
-mod ip;
+mod datetime;
+mod output;
+mod network;
+mod system;
 
 #[derive(Parser, Debug)]
 #[command(name = "my")]
@@ -21,8 +21,11 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    #[command(name = "ip", about = "Find out your IP address", long_about = None)]
-    Ip,
+    #[command(name = "ips", about = "Find out your IP addresses", long_about = None)]
+    Ips{
+        #[arg(long)]
+        only: Option<IpSelection>,
+    },
 
     #[command(name = "dns", about = "Find out your DNS servers", long_about = None)]
     Dns,
@@ -35,40 +38,180 @@ enum Commands {
 
     #[command(name = "datetime", about = "Find out the current date and time", long_about = None)]
     Datetime,
+
+    #[command(name = "hostname", about = "Find out your hostname", long_about = None)]
+    Hostname,
+
+    #[command(name = "username", about = "Find out your country", long_about = None)]
+    Username,
+
+    #[command(name = "device-name", about = "Find out the name of your device", long_about = None)]
+    DeviceName,
+
+    #[command(name = "os", about = "Find out your OS name and version", long_about = None)]
+    Os,
+
+    #[command(name = "architecture", about = "Find out your CPU architecture", long_about = None)]
+    Architecture,
+
+    #[command(name = "interfaces", about = "Find out your network interfaces", long_about = None)]
+    Interfaces,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum IpSelection {
+    #[clap(name = "public")]
+    Public,
+
+    #[clap(name = "local")]
+    Local,
+
+    #[clap(name = "all")]
+    All,
+}
+
+
 #[tokio::main]
-// async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Parse the CLI arguments
     let args = Cli::parse();
 
+
+    // Execute the appropriate command
     match args.command {
         Commands::Date => {
-            let dt = Local::now();
-            let now_with_tz = dt.with_timezone(&Local);
-            println!("{}", now_with_tz.format("%A, %d %B, %Y, week %U"));
-        }
-        Commands::Time => {
-            let sntp_client = AsyncSntpClient::new();
-            let sntp_time = sntp_client.synchronize("pool.ntp.org").await?;
-            let now = sntp_time.datetime().into_chrono_datetime()?;
-            let now_with_tz = now.with_timezone(&Local);
+            let date = datetime::date().await?;
 
-            println!("{}", now_with_tz.format("%H:%M:%S %Z"));
-            println!("±{:.4} seconds", sntp_time.clock_offset().as_secs_f64());
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&date)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    println!("{}", date);
+                },
+            }
+        },
+        Commands::Time => {
+            let time = datetime::time().await?;
+
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&time)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    println!("{}", time);
+                },
+            }
         },
         Commands::Datetime => {
-            let sntp_client = AsyncSntpClient::new();
-            let sntp_time = sntp_client.synchronize("pool.ntp.org").await?;
-            let now = sntp_time.datetime().into_chrono_datetime()?;
-            let now_with_tz = now.with_timezone(&Local);
+            let dt = datetime::datetime().await?;
 
-            println!("{}", now_with_tz.format("%H:%M:%S %Z, %A, %d %B, %Y, week %U"));
-            println!("±{:.4} seconds", sntp_time.clock_offset().as_secs_f64());
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&dt)?;
+                    print!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    print!("{}", dt);
+                },
+            }
+        },
+        Commands::Dns => {
+            let nameservers = network::list_dns_servers().await?;
+
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&nameservers)?;
+                    println!("{}", json_repr)
+                },
+                OutputFormat::Text => {
+                    nameservers.iter().for_each(|ns| println!("{}", ns))
+                },
+            }
+        },
+        Commands::Ips { only } => {
+            ips(args.output).await?
         }
-        Commands::Dns => dns(args.output).await?,
-        Commands::Ip => ip(args.output).await?,
-    }
+        Commands::Hostname => {
+            let hostname = system::hostname().await?;
+
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&hostname)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    println!("{}", hostname);
+                },
+            }
+        },
+        Commands::Username => {
+            let username = system::username().await?;
+
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&username)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    println!("{}", username);
+                },
+            }
+        },
+        Commands::DeviceName => {
+            let devicename = system::device_name().await?;
+
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&devicename)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    println!("{}", devicename);
+                },
+            }
+        },
+        Commands::Os => {
+            let os = system::os().await?;
+
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&os)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    println!("{}", os);
+                },
+            }
+        },
+        Commands::Architecture => {
+            let arch = system::architecture().await?;
+
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&arch)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    println!("{}", arch);
+                },
+            }
+        },
+        Commands::Interfaces => {
+            let interfaces = network::interfaces().await?;
+            match args.output {
+                OutputFormat::Json => {
+                    let json_repr = serde_json::to_string_pretty(&interfaces)?;
+                    println!("{}", json_repr);
+                },
+                OutputFormat::Text => {
+                    interfaces.iter().for_each(|interface| println!("{}", interface));
+                },
+            }
+        },
+    };
 
     Ok(())
 }
@@ -79,44 +222,39 @@ enum OutputFormat {
     Text,
 }
 
-async fn dns(output: OutputFormat) -> Result<()> {
-    let (conf, _) = system_conf::read_system_conf()?;
-    let mut name_servers = conf
-        .name_servers()
-        .iter()
-        .map(|ns| {
-            ns.socket_addr
-                .to_string()
-                .splitn(2, ':')
-                .next()
-                .unwrap()
-                .to_owned()
-        })
-        .collect::<Vec<_>>();
 
-    name_servers.dedup();
 
-    match output {
-        OutputFormat::Json => {
-            let json_repr = serde_json::to_string_pretty(&name_servers)?;
-            Ok(println!("{}", json_repr))
-        },
-        OutputFormat::Text => {
-            Ok(name_servers.iter().for_each(|ns| println!("{}", ns)))
-        },
-    }
+async fn ips(output: OutputFormat) -> Result<()> {
+    public_ip(output).await?;
+    local_ip(output).await?;
+
+    Ok(())
 }
 
-async fn ip(output: OutputFormat) -> Result<()> {
-    let public_ip = ip::query_public_ip(ip::OPENDNS_SERVER_HOST, 53).await?;
-    
+async fn public_ip(output: OutputFormat) -> Result<()> {
+    let public_ip = network::query_public_ip(network::OPENDNS_SERVER_HOST, 53).await?;
+
     match output {
         OutputFormat::Json => {
             let json_repr = serde_json::to_string_pretty(&public_ip)?;
             Ok(println!("{}", json_repr))
         },
-        OutputFormat::Text => {        
+        OutputFormat::Text => {
             Ok(println!("{}", public_ip))
+        }
+    }
+}
+
+async fn local_ip(output: OutputFormat) -> Result<()> {
+    let ip = local_ip_address::local_ip().unwrap();
+
+    match output {
+        OutputFormat::Json => {
+            let json_repr = serde_json::to_string_pretty(&ip)?;
+            Ok(println!("{}", json_repr))
+        },
+        OutputFormat::Text => {
+            Ok(println!("{}", ip))
         }
     }
 }
