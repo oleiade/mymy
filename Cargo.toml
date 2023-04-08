@@ -1,6 +1,6 @@
 [package]
 name = "mymy"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Théo Crevon <theo@crevon.me>"]
 description = "Access the most common information about your system using a single command"
@@ -17,10 +17,35 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.70"
-chrono = { default-features = false, version = "0.4.24" }
-clap = { version = "4.2.1", features = ["std", "derive"], default-features = false }
+get_if_addrs = "0.5.3"
+hostname = "0.3.1"
+local-ip-address = "0.5.1"
 rsntp = "3.0.2"
-serde = { version = "1.0.159", features = ["derive"], default-features = false }
 serde_json = "1.0.95"
-tokio = { version = "1.27.0", default-features = false, features = ["macros"] }
-trust-dns-resolver = { version = "0.22.0", features = ["tokio-runtime", "system-config"], default-features = false }
+
+[dependencies.chrono]
+version = "0.4.24"
+default-features = false
+
+[dependencies.clap]
+version = "4.2.1"
+features = ["derive"]
+
+[dependencies.serde]
+version = "1.0.159"
+features = ["serde_derive"]
+default-features = false
+
+[dependencies.tokio]
+version = "1.27.0"
+default-features = false
+features = ["macros"]
+
+[dependencies.trust-dns-resolver]
+version = "0.22.0"
+features = ["tokio-runtime", "system-config"]
+default-features = false
+
+[dependencies.whoami]
+version = "1.4.0"
+default-features = false
