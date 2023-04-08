@@ -347,16 +347,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "icmp-socket"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98bc3daf82cd6b2f02709427c17f75e1023471f59bc74726bbd27d8a907af605"
-dependencies = [
- "byteorder",
- "socket2",
-]
-
-[[package]]
 name = "idna"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -510,7 +500,6 @@ dependencies = [
  "clap",
  "get_if_addrs",
  "hostname",
- "icmp-socket",
  "local-ip-address",
  "rsntp",
  "serde",
