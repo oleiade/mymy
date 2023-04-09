@@ -23,17 +23,24 @@ The main commands available in the mymy are:
 
 mymy eliminates the need to remember multiple commands and their specific syntax, as well as searching through different files for specific information. Additionally, this tool is multi-platform, making it even more convenient for users across different operating systems (MacOS, Linux, Windows).
 
-## Getting Started
+## Installation
 
-To use mymy, follow these steps:
+### Homebrew
 
-1. Install the tool by running the `cargo install mymy` command.
-2. Open a terminal or command prompt.
-3. Use any of the commands mentioned in the Features section, preceded by the name of the executable.
+```fish
+brew tap oleiade/tap
+brew install mymy
+```
+
+### Cargo
+
+```fish
+cargo install mymy
+```
 
 ### Example Usage
 
-Here are some example usages of the System Information Tool commands:
+Here are some example usages of the command:
 
 ```fish
 $ my ips
