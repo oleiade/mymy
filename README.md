@@ -35,7 +35,7 @@ To use mymy, follow these steps:
 
 Here are some example usages of the System Information Tool commands:
 
-```bash
+```fish
 $ my ips
 public	84.172.75.134
 local	192.168.2.246
@@ -64,7 +64,7 @@ $ my username
 oleiade
 
 $ my device-name
-Oleiade's Laptop
+Oleiade Laptop
 
 $ my os
 macOS 13.2.1
