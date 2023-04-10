@@ -11,6 +11,11 @@ keywords = ["cli", "network", "time"]
 categories = ["command-line-utilities"]
 license-file = "LICENSE"
 
+[profile.release]
+debug = 1
+incremental = true
+lto = "off"
+
 [[bin]]
 name = "my"
 path = "src/main.rs"
@@ -49,3 +54,12 @@ default-features = false
 [dependencies.whoami]
 version = "1.4.0"
 default-features = false
+
+[package.metadata.rpm]
+package = "mymy"
+
+[package.metadata.rpm.cargo]
+buildflags = ["--release"]
+
+[package.metadata.rpm.targets]
+mymy = { path = "/usr/bin/mymy" }
