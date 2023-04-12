@@ -27,9 +27,25 @@ mymy eliminates the need to remember multiple commands and their specific syntax
 
 ### Homebrew
 
-```fish
+```bash
 brew tap oleiade/tap
 brew install mymy
+```
+
+### Debian/Ubuntu
+
+```bash
+# Download and install the repository's GPG key
+curl -fsSL https://oleiade.github.io/deb/oleiade-archive-keyring.gpg | gpg --dearmor > /usr/share/keyrings/oleiade-archive-keyring.gpg
+
+# Add the repository to your system's sources
+echo "deb [signed-by=/usr/share/keyrings/oleiade-archive-keyring.gpg] https://oleiade.github.io/deb stable main" > /etc/apt/sources.list.d/oleiade.list
+
+# Update your sources
+apt update
+
+# Install mymy
+apt install mymy
 ```
 
 ### Cargo
