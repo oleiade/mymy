@@ -55,6 +55,9 @@ default-features = false
 version = "1.4.0"
 default-features = false
 
+[package.metadata.deb]
+section = "main"
+
 [package.metadata.rpm]
 package = "mymy"
 
