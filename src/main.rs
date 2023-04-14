@@ -96,6 +96,11 @@ enum Commands {
     #[command(about = "Display your system's disks")]
     #[command(long_about = "Lists all the disks installed on your system, providing details such as disk name, type, free space, total capacity, and percentage of free space.")]
     Disks,
+
+    #[command(name = "cpu")]
+    #[command(about = "Display your system's CPU")]
+    #[command(long_about = "Show the name of the CPU installed on your system.")]
+    Cpu,
 }
 
 
@@ -157,9 +162,10 @@ async fn main() -> Result<()> {
             Commands::Architecture => CommandResult::Architecture(system::architecture().await?),
             Commands::Interfaces => CommandResult::Interfaces(network::interfaces().await?),
             Commands::Disks => CommandResult::Disks(storage::list_disks().await?),
+            Commands::Cpu => CommandResult::Cpu(system::cpus().await?),
         };
 
-        match cli.output {
+        match cli.format {
             OutputFormat::Json => {
                 let json_repr = serde_json::to_string_pretty(&result)?;
                 println!("{}", json_repr);
@@ -191,6 +197,7 @@ enum CommandResult {
     Architecture(output::Named),
     Interfaces(Vec<network::Interface>),
     Disks(Vec<storage::DiskInfo>),
+    Cpu(system::Cpu),
 }
 
 impl Display for CommandResult {
@@ -233,6 +240,7 @@ impl Display for CommandResult {
                         .join("\n")
                 )
             },
+            CommandResult::Cpu(cpu) => cpu.fmt(f),
         }
     }
 }
@@ -255,6 +263,7 @@ impl Serialize for CommandResult {
             CommandResult::Architecture(architecture) => architecture.serialize(serializer),
             CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
             CommandResult::Disks(disks) => disks.serialize(serializer),
+            CommandResult::Cpu(cpu) => cpu.serialize(serializer),
         }
     }
 }
