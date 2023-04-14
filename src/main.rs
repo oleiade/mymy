@@ -8,6 +8,7 @@ mod country;
 mod datetime;
 mod network;
 mod output;
+mod storage;
 mod system;
 
 
@@ -90,6 +91,11 @@ enum Commands {
     #[command(about = "Display your system's network interfaces")]
     #[command(long_about = "List all the network interfaces configured on your system, presented in the order they are used.")]
     Interfaces,
+
+    #[command(name = "disks")]
+    #[command(about = "Display your system's disks")]
+    #[command(long_about = "Lists all the disks installed on your system, providing details such as disk name, type, free space, total capacity, and percentage of free space.")]
+    Disks,
 }
 
 
@@ -150,6 +156,7 @@ async fn main() -> Result<()> {
             Commands::Os => CommandResult::Os(system::os().await?),
             Commands::Architecture => CommandResult::Architecture(system::architecture().await?),
             Commands::Interfaces => CommandResult::Interfaces(network::interfaces().await?),
+            Commands::Disks => CommandResult::Disks(storage::list_disks().await?),
         };
 
         match cli.output {
@@ -183,6 +190,7 @@ enum CommandResult {
     Os(output::Named),
     Architecture(output::Named),
     Interfaces(Vec<network::Interface>),
+    Disks(Vec<storage::DiskInfo>),
 }
 
 impl Display for CommandResult {
@@ -212,7 +220,18 @@ impl Display for CommandResult {
                         .map(ToString::to_string)
                         .collect::<String>()
                 )
-            }
+            },
+            CommandResult::Disks(disks) => {
+                write!(
+                    f,
+                    "{}",
+                    disks
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
+            },
         }
     }
 }
@@ -234,6 +253,7 @@ impl Serialize for CommandResult {
             CommandResult::Os(os) => os.serialize(serializer),
             CommandResult::Architecture(architecture) => architecture.serialize(serializer),
             CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
+            CommandResult::Disks(disks) => disks.serialize(serializer),
         }
     }
 }
