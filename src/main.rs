@@ -218,7 +218,8 @@ impl Display for CommandResult {
                     interfaces
                         .iter()
                         .map(ToString::to_string)
-                        .collect::<String>()
+                        .collect::<Vec<String>>()
+                        .join("\n")
                 )
             },
             CommandResult::Disks(disks) => {
