@@ -6,6 +6,7 @@ use serde::{Serialize, Serializer};
 
 mod country;
 mod datetime;
+mod format;
 mod network;
 mod output;
 mod storage;
@@ -21,7 +22,7 @@ pub struct Cli {
     command: Option<Commands>,
 
     #[arg(short, long, value_enum, default_value_t = OutputFormat::Text)]
-    output: OutputFormat,
+    format: OutputFormat,
 }
 
 #[derive(Debug, Subcommand)]
@@ -101,6 +102,11 @@ enum Commands {
     #[command(about = "Display your system's CPU")]
     #[command(long_about = "Show the name of the CPU installed on your system.")]
     Cpu,
+
+    #[command(name = "ram")]
+    #[command(about = "Display your system's RAM")]
+    #[command(long_about = "Show the amount of RAM installed and used on your system.")]
+    Ram,
 }
 
 
@@ -163,6 +169,7 @@ async fn main() -> Result<()> {
             Commands::Interfaces => CommandResult::Interfaces(network::interfaces().await?),
             Commands::Disks => CommandResult::Disks(storage::list_disks().await?),
             Commands::Cpu => CommandResult::Cpu(system::cpus().await?),
+            Commands::Ram => CommandResult::Ram(system::ram().await?),
         };
 
         match cli.format {
@@ -198,6 +205,7 @@ enum CommandResult {
     Interfaces(Vec<network::Interface>),
     Disks(Vec<storage::DiskInfo>),
     Cpu(system::Cpu),
+    Ram(system::Ram)
 }
 
 impl Display for CommandResult {
@@ -241,6 +249,7 @@ impl Display for CommandResult {
                 )
             },
             CommandResult::Cpu(cpu) => cpu.fmt(f),
+            CommandResult::Ram(ram) => ram.fmt(f),
         }
     }
 }
@@ -264,6 +273,7 @@ impl Serialize for CommandResult {
             CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
             CommandResult::Disks(disks) => disks.serialize(serializer),
             CommandResult::Cpu(cpu) => cpu.serialize(serializer),
+            CommandResult::Ram(ram) => ram.serialize(serializer),
         }
     }
 }

@@ -5,6 +5,7 @@ use colored::*;
 use serde::Serialize;
 use sysinfo::{CpuExt, CpuRefreshKind, RefreshKind, System, SystemExt};
 
+use crate::format::human_readable_size;
 use crate::output::{create_named, Named, NamedKind};
 
 /// returns the hostname of the system as a Named enum
@@ -63,5 +64,58 @@ pub struct Cpu {
 impl Display for Cpu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}, {} cores running at {} GHz", self.brand.bold(), self.core_count.to_string().cyan(), self.frequency.to_string().green())
+    }
+}
+
+/// returns the RAM of the system as a Ram struct
+pub async fn ram() -> Result<Ram> {
+    let mut system = System::new_with_specifics(RefreshKind::new().with_memory());
+    system.refresh_memory();
+
+    Ok(Ram {
+        total: system.total_memory(),
+        used: system.used_memory(),
+        free: system.free_memory(),
+        available: system.available_memory(),
+    })
+}
+
+/// Describes the RAM of a system
+#[derive(Serialize)]
+pub struct Ram {
+    #[serde(rename = "total_ram_bytes")]
+    pub total: u64,
+
+    #[serde(rename = "used_ram_bytes")]
+    pub used: u64,
+
+    #[serde(rename = "free_ram_bytes")]
+    pub free: u64,
+
+    #[serde(rename = "available_ram_bytes")]
+    pub available: u64,
+}
+
+impl Display for Ram {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let total = human_readable_size(self.total);
+        let used = human_readable_size(self.used);
+        let used_percentage = (self.used as f64 / self.total as f64) * 100.0;
+
+        println!("used percentage: {}", used_percentage);
+
+        let (used_colored, used_percentage_colored) = match used_percentage {
+            _ if used_percentage > 90.0 => (used.red(), format!("{:.1}", used_percentage).to_string().red()),
+            _ if used_percentage > 70.0 => (used.yellow(), format!("{:.1}", used_percentage).to_string().yellow()),
+            _ => (used.green(), format!("{:.1}", used_percentage).to_string().green()),
+        };
+
+        write!(
+            f,
+            "{} installed, {} in use ({}%)",
+            total.bold(),
+            used_colored,
+            used_percentage_colored,
+        )
     }
 }
