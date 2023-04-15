@@ -36,10 +36,13 @@ brew install mymy
 
 ```bash
 # Download and install the repository's GPG key
-curl -fsSL https://oleiade.github.io/deb/oleiade-archive-keyring.gpg | gpg --dearmor > /usr/share/keyrings/oleiade-archive-keyring.gpg
+curl -fsSL https://oleiade.github.io/deb/oleiade-archive-keyring.gpg | \
+gpg --dearmor \
+sudo tee /usr/share/keyrings/oleiade-archive-keyring.gpg > /dev/null
 
 # Add the repository to your system's sources
-echo "deb [signed-by=/usr/share/keyrings/oleiade-archive-keyring.gpg] https://oleiade.github.io/deb stable main" > /etc/apt/sources.list.d/oleiade.list
+echo "deb [signed-by=/usr/share/keyrings/oleiade-archive-keyring.gpg] https://oleiade.github.io/deb stable main" \
+sudo tee /etc/apt/sources.list.d/oleiade.list > /dev/null
 
 # Update your sources
 apt update
