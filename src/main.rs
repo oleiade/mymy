@@ -2,6 +2,7 @@ use std::fmt::Display;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
+use human_panic::setup_panic;
 use serde::{Serialize, Serializer};
 
 mod country;
@@ -112,6 +113,9 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Enable human-readable panic messages
+    setup_panic!();
+
     // Parse the CLI arguments
     let cli = Cli::parse();
 
