@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use anyhow::Result;
+use anyhow::{Result, Context};
 use clap::{Parser, Subcommand, ValueEnum};
 use human_panic::setup_panic;
 use serde::{Serialize, Serializer};
@@ -122,24 +122,45 @@ async fn main() -> Result<()> {
     // Execute the appropriate command
     if let Some(command) = &cli.command {
         let result: CommandResult = match command {
-            Commands::Date => CommandResult::Date(datetime::date().await?),
-            Commands::Time => CommandResult::Time(datetime::time().await?),
-            Commands::Datetime => CommandResult::Datetime(datetime::datetime().await?),
-            Commands::Dns => CommandResult::Dns(network::list_dns_servers().await?),
+            Commands::Date => CommandResult::Date(
+                datetime::date().await
+                    .with_context(|| "looking up the system's date failed")?
+            ),
+            Commands::Time => CommandResult::Time(
+                datetime::time().await
+                    .with_context(|| "looking up the system's time failed")?
+            ),
+            Commands::Datetime => CommandResult::Datetime(
+                datetime::datetime().await
+                    .with_context(|| "looking up the system's datetime failed")?
+            ),
+            Commands::Dns => CommandResult::Dns(
+                network::list_dns_servers().await
+                    .with_context(|| "listing the system's dns servers failed")?
+            ),
             Commands::Ips{ only } => match only {
                 Some(network::IpCategory::Public) => {
                     let public_ip = network::query_public_ip(
                         network::OPENDNS_SERVER_HOST,
                         network::DNS_DEFAULT_PORT,
                     )
-                    .await?;
+                    .await
+                    .with_context(|| {
+                        format!(
+                            "looking up public ip failed; reason: querying dns server {} on port {} failed",
+                            network::OPENDNS_SERVER_HOST,
+                            network::DNS_DEFAULT_PORT
+                        )
+                    })?;
                     CommandResult::Ips(vec![network::Ip {
                         category: network::IpCategory::Public,
                         address: public_ip,
                     }])
                 },
                 Some(network::IpCategory::Local) => {
-                    let local_ip = local_ip_address::local_ip().unwrap();
+                    let local_ip = local_ip_address::local_ip()
+                        .with_context(|| "looking up local ip failed; reason: querying local ip address failed")?;
+
                     CommandResult::Ips(vec![network::Ip {
                         category: network::IpCategory::Local,
                         address: local_ip,
@@ -150,8 +171,17 @@ async fn main() -> Result<()> {
                         network::OPENDNS_SERVER_HOST,
                         network::DNS_DEFAULT_PORT,
                     )
-                    .await?;
-                    let local_ip = local_ip_address::local_ip().unwrap();
+                    .await
+                    .with_context(|| {
+                        format!(
+                            "listing ips failed; reason: querying dns server {} on port {} failed",
+                            network::OPENDNS_SERVER_HOST,
+                            network::DNS_DEFAULT_PORT
+                        )
+                    })?;
+
+                    let local_ip = local_ip_address::local_ip()
+                        .with_context(|| "listing ips failed; reason: querying local ip address failed")?;
 
                     CommandResult::Ips(vec![
                         network::Ip {
@@ -165,15 +195,41 @@ async fn main() -> Result<()> {
                     ])
                 }
             },
-            Commands::Hostname => CommandResult::Hostname(system::hostname().await?),
-            Commands::Username => CommandResult::Username(system::username().await?),
-            Commands::DeviceName => CommandResult::DeviceName(system::device_name().await?),
-            Commands::Os => CommandResult::Os(system::os().await?),
-            Commands::Architecture => CommandResult::Architecture(system::architecture().await?),
-            Commands::Interfaces => CommandResult::Interfaces(network::interfaces().await?),
-            Commands::Disks => CommandResult::Disks(storage::list_disks().await?),
-            Commands::Cpu => CommandResult::Cpu(system::cpus().await?),
-            Commands::Ram => CommandResult::Ram(system::ram().await?),
+            Commands::Hostname => CommandResult::Hostname(
+                system::hostname().await
+                    .with_context(|| "looking up the system's hostname failed")?
+            ),
+            Commands::Username => CommandResult::Username(
+                system::username().await
+                    .with_context(|| "looking up the user's username failed")?
+            ),
+            Commands::DeviceName => CommandResult::DeviceName(
+                system::device_name().await
+                    .with_context(|| "looking up the systems' device name failed")?
+            ),
+            Commands::Os => CommandResult::Os(
+                system::os().await
+                    .with_context(|| "looking up the system's OS name failed")?
+            ),
+            Commands::Architecture => CommandResult::Architecture(
+                system::architecture().await
+                    .with_context(|| "looking up the CPU's architecture fialed")?
+            ),
+            Commands::Interfaces => CommandResult::Interfaces(
+                network::interfaces().await
+                    .with_context(|| "listing the system's network interfaces failed")?
+            ),
+            Commands::Disks => CommandResult::Disks(
+                storage::list_disks().await
+                    .with_context(|| "listing the disks failed")?
+            ),
+            Commands::Cpu => CommandResult::Cpu(
+                system::cpus().await
+                    .with_context(|| "looking up the system's CPU information failed")?),
+            Commands::Ram => CommandResult::Ram(
+                system::ram().await
+                    .with_context(|| "looking up the system's RAM information failed")?
+            ),
         };
 
         match cli.format {
