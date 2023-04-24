@@ -850,7 +850,6 @@ dependencies = [
  "clap",
  "colored",
  "get_if_addrs",
- "hostname",
  "human-panic",
  "itertools",
  "local-ip-address",
