@@ -247,9 +247,17 @@ pub async fn mac_addresses() -> Result<Vec<MacAddress>> {
 
         // Some interfaces could not have a mac address       
         if !mac_address.is_unspecified(){
+            let mut pretty_address = String::with_capacity(17);
+            for (pos, e) in mac_address.0.to_vec().iter().enumerate() {
+                if pos != 0 {
+                    pretty_address.push(':');
+                }
+            // Format the number as HEX pairs
+            pretty_address.push_str(&format!("{:02X}", e));
+        }
             addresses.push(MacAddress { 
                 name: interface_name.to_string(), 
-                address: mac_address.0.to_vec(),
+                address: pretty_address.to_owned(),
           });
         }
      }
@@ -264,21 +272,12 @@ pub struct MacAddress {
     name: String,
     /// The Mac address
     #[serde(rename(deserialize = "mac_address", serialize= "mac_address"))]
-    address: Vec<u8>,
+    address: String,
 }
 
 impl Display for MacAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut pretty_address = String::with_capacity(17);
-        for (pos, e) in self.address.iter().enumerate() {
-            if pos != 0 {
-                pretty_address.push(':');
-            }
-            // Format the number as HEX pairs
-            pretty_address.push_str(&format!("{:02X}", e));
-        }
-
-        write!(f, "{}\t{}", self.name, pretty_address)
+        write!(f, "{}\t{}", self.name, self.address)
     }
 
 }
