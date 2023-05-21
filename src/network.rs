@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::vec;
 
 use anyhow::Result;
 use clap::ValueEnum;
@@ -7,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
 use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle};
+use sysinfo::{NetworkExt, System, SystemExt};
 
 #[derive(Serialize)]
 pub struct IpReport {
@@ -213,4 +215,70 @@ impl Display for Interface {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}\t{}", self.name, self.ip)
     }
+}
+/// Lists those interfaces that have an associated mac address.
+/// 
+/// # Returns
+/// 
+/// A vector holding the mac address and the name of the intreface.
+/// 
+/// # Errors
+/// 
+/// If the system configuration cannot be read.
+/// 
+/// # Examples
+/// 
+/// ```
+/// let mac_addresses = ip::_mac_addresses().unwrap();
+/// for e in mac_addresses {
+///     println!("Interface: {}, mac address: {}", e.name, e.address);
+/// }
+/// ```
+pub async fn mac_addresses() -> Result<Vec<MacAddress>> {
+     let mut system_info = System::new();
+
+     // Get only the network information of the system
+     system_info.refresh_networks_list();
+     let networks = system_info.networks();
+     let mut addresses : Vec<MacAddress> = Vec::new(); 
+
+     for (interface_name, network) in networks {
+        let mac_address = network.mac_address();
+
+        // Some interfaces could not have a mac address       
+        if !mac_address.is_unspecified(){
+            addresses.push(MacAddress { 
+                name: interface_name.to_string(), 
+                address: mac_address.0.to_vec(),
+          });
+        }
+     }
+     Ok(addresses)
+}
+
+/// A Mac Address
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MacAddress {
+    /// The  network interface name
+    #[serde(rename(deserialize = "interface_name", serialize= "interface_name"))]
+    name: String,
+    /// The Mac address
+    #[serde(rename(deserialize = "mac_address", serialize= "mac_address"))]
+    address: Vec<u8>,
+}
+
+impl Display for MacAddress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut pretty_address = String::with_capacity(17);
+        for (pos, e) in self.address.iter().enumerate() {
+            if pos != 0 {
+                pretty_address.push(':');
+            }
+            // Format the number as HEX pairs
+            pretty_address.push_str(&format!("{:02X}", e));
+        }
+
+        write!(f, "{}\t{}", self.name, pretty_address)
+    }
+
 }

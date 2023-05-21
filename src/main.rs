@@ -43,6 +43,15 @@ enum Commands {
     #[command(long_about = "Show the DNS servers configured on your system, listed in the order they are used.")]
     Dns,
 
+    #[command(name = "mac-addresses")]
+    #[command(about = "Display your system's interfaces mac address")]
+    #[command(long_about = "Shows a list of interfaces and its associated mac address.\n\
+    Example: \n\
+    eth0        FF:FF:FF:FF:FF:FF
+    wlp0s20f3       EE:EE:EE:EE:EE:EE
+    ")]
+    MacAddresses,
+
     // #[command(arg_required_else_help = true)]
     #[command(name = "date")]
     #[command(about = "Display your system's date")]
@@ -219,6 +228,10 @@ async fn main() -> Result<()> {
                 network::interfaces().await
                     .with_context(|| "listing the system's network interfaces failed")?
             ),
+            Commands::MacAddresses => CommandResult::MacAddresses(
+                network::mac_addresses().await
+                    .with_context(|| "listing the system's interfaces mac address failed")?
+            ),
             Commands::Disks => CommandResult::Disks(
                 storage::list_disks().await
                     .with_context(|| "listing the disks failed")?
@@ -263,6 +276,7 @@ enum CommandResult {
     Os(output::Named),
     Architecture(output::Named),
     Interfaces(Vec<network::Interface>),
+    MacAddresses(Vec<network::MacAddress>),
     Disks(Vec<storage::DiskInfo>),
     Cpu(system::Cpu),
     Ram(system::Ram)
@@ -286,6 +300,18 @@ impl Display for CommandResult {
             CommandResult::DeviceName(device_name) => device_name.fmt(f),
             CommandResult::Os(os) => os.fmt(f),
             CommandResult::Architecture(architecture) => architecture.fmt(f),
+            CommandResult::MacAddresses(mac_addresses) => {
+                write!(
+                    f,
+                    "{}",
+                    mac_addresses
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
+
+            },
             CommandResult::Interfaces(interfaces) => {
                 write!(
                     f,
@@ -331,6 +357,7 @@ impl Serialize for CommandResult {
             CommandResult::Os(os) => os.serialize(serializer),
             CommandResult::Architecture(architecture) => architecture.serialize(serializer),
             CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
+            CommandResult::MacAddresses(mac_address) => mac_address.serialize(serializer),
             CommandResult::Disks(disks) => disks.serialize(serializer),
             CommandResult::Cpu(cpu) => cpu.serialize(serializer),
             CommandResult::Ram(ram) => ram.serialize(serializer),
