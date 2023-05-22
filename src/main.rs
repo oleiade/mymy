@@ -44,8 +44,8 @@ enum Commands {
     Dns,
 
     #[command(name = "mac-addresses")]
-    #[command(about = "Display your system's interfaces mac address")]
-    #[command(long_about = "Shows a list of interfaces and its associated mac address.\n\
+    #[command(about = "Display your system's network interfaces mac address")]
+    #[command(long_about = "Shows a list of network interfaces and its associated mac address.\n\
     Example: \n\
     eth0        FF:FF:FF:FF:FF:FF
     wlp0s20f3       EE:EE:EE:EE:EE:EE

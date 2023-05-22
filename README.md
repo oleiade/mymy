@@ -18,6 +18,7 @@ The main commands available in the mymy are:
 - `os`: Identify the operating system your system is running.
 - `architecture`: Determine your CPU's architecture.
 - `interfaces`: List all the network interfaces configured on your system.
+- `mac-addresses`: Shows a list of network interfaces and its associated mac address.
 
 ## Benefits
 
