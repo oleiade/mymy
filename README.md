@@ -21,6 +21,7 @@ The main commands available in the mymy are:
 - `ram`: Get information about your system's RAM, including its total capacity and usage.
 - `architecture`: Determine your CPU's architecture.
 - `interfaces`: List all the network interfaces configured on your system.
+- `mac-addresses`: Shows a list of network interfaces and its associated mac address.
 
 ## Benefits
 
