@@ -1,12 +1,15 @@
 use std::fmt::{Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::time::Duration;
 
 use anyhow::Result;
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle};
+use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle, AsyncResolver};
+
+use crate::format::human_readable_duration;
 
 #[derive(Serialize)]
 pub struct IpReport {
@@ -212,5 +215,66 @@ pub struct Interface {
 impl Display for Interface {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}\t{}", self.name, self.ip)
+    }
+}
+
+pub async fn resolve_domain(domain: &str) -> Option<IpAddr> {
+    let resolver = AsyncResolver::tokio_from_system_conf()
+        .expect("failed to create resolver");
+    match resolver.lookup_ip(domain).await {
+        Ok(lookup) => lookup.iter().next(),
+        Err(_) => None,
+    }
+}
+
+pub async fn ping_once(target: IpAddr, timeout: Duration) -> Result<Ping> {
+    use surge_ping::ping;
+    let payload = [0; 8];
+    let (_, duration) = ping(target, &payload).await?;
+
+    if duration > timeout {
+        return Err(anyhow::anyhow!("pinging {} timed out", target));
+    }
+
+    Ok(Ping { target, duration })
+}
+
+async fn median_latency(target: IpAddr, interval: Duration, timeout: Duration) -> Option<f64> {
+    let mut samples = Vec::new();
+
+    loop {
+        if let Ok(ping) = ping_once(target, timeout).await {
+            samples.push(ping.duration);
+            if samples.len() >= 10 {
+                break;
+            }
+        }
+
+        tokio::time::sleep(interval).await;
+    }
+
+    if samples.is_empty() {
+        return None;
+    } else {
+        samples.sort_unstable();
+
+        let mid = samples.len() / 2;
+        if samples.len() % 2 == 0 {
+            Some((samples[mid - 1] + samples[mid]).as_secs_f64() / 2.0)
+        } else {
+            Some(samples[mid].as_secs_f64())
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct Ping {
+    target: IpAddr,
+    duration: Duration,
+}
+
+impl Display for Ping {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}\t{}", self.target, human_readable_duration(self.duration))
     }
 }

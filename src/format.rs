@@ -15,3 +15,18 @@ pub fn human_readable_size(bytes: u64) -> String {
         _ => format!("{:.2} PiB", bytes as f64 / PETA as f64),
     }
 }
+
+/// Convert duration to human readable duration
+pub fn human_readable_duration(duration: std::time::Duration) -> String {
+    let millis = duration.as_millis();
+    let seconds = duration.as_secs();
+    let minutes = seconds / 60;
+
+    if millis < 1_000 {
+        format!("{} ms", millis)
+    } else if seconds < 60 {
+        format!("{} s", seconds)
+    } else {
+        format!("{} m", minutes)
+    }
+}
