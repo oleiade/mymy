@@ -7,8 +7,10 @@
 ## Features
 
 The main commands available in the mymy are:
+- `cpu`: Get information about your CPU, including its name, number of cores, and clock speed.
 - `ips`: Find out all the IP addresses allocated to your system, including local and external ones.
 - `dns`: Discover your system's configured DNS server.
+- `disks`: List all the disks attached to your system.
 - `date`: Consult your system's configured date in a human-readable format.
 - `time`: Consult your system's configured time and get the offset from the central NTP clock server.
 - `datetime`: A combination of the `date` and `time` commands.
@@ -16,6 +18,7 @@ The main commands available in the mymy are:
 - `username`: Find out your current user's system username.
 - `device-name`: Get your device's configured name.
 - `os`: Identify the operating system your system is running.
+- `ram`: Get information about your system's RAM, including its total capacity and usage.
 - `architecture`: Determine your CPU's architecture.
 - `interfaces`: List all the network interfaces configured on your system.
 - `mac-addresses`: Shows a list of network interfaces and its associated mac address.

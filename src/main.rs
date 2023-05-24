@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, net::IpAddr, time::Duration};
 
 use anyhow::{Result, Context};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -10,6 +10,7 @@ mod datetime;
 mod format;
 mod network;
 mod output;
+mod parsers;
 mod storage;
 mod system;
 
@@ -117,6 +118,16 @@ enum Commands {
     #[command(about = "Display your system's RAM")]
     #[command(long_about = "Show the amount of RAM installed and used on your system.")]
     Ram,
+
+    #[command(name = "latency")]
+    #[command(about = "latency to a remote host")]
+    #[command(long_about = "Measure the latency to a remote host and display the results.")]
+    Latency {
+        host: String,
+
+        #[arg(long, default_value = "5")]
+        timeout: String,
+    },
 }
 
 
@@ -243,6 +254,24 @@ async fn main() -> Result<()> {
                 system::ram().await
                     .with_context(|| "looking up the system's RAM information failed")?
             ),
+            Commands::Latency { host, timeout } => {
+                let timeout_duration = parsers::parse_duration(timeout)
+                    .with_context(|| "parsing timeout expression failed")?;
+
+                println!("{:?}", timeout_duration);
+
+                let target = match host.parse::<IpAddr>() {
+                    Ok(ip) => ip,
+                    Err(_) => network::resolve_domain(host).await.unwrap_or_else(|| {
+                        eprintln!("Failed to resolve domain name '{}'", host);
+                        std::process::exit(1);
+                    })
+                };
+
+                let ping = network::ping_once(target, timeout_duration).await?;
+
+                CommandResult::Ping(ping)
+            },
         };
 
         match cli.format {
@@ -279,7 +308,8 @@ enum CommandResult {
     MacAddresses(Vec<network::MacAddress>),
     Disks(Vec<storage::DiskInfo>),
     Cpu(system::Cpu),
-    Ram(system::Ram)
+    Ram(system::Ram),
+    Ping(network::Ping),
 }
 
 impl Display for CommandResult {
@@ -336,6 +366,7 @@ impl Display for CommandResult {
             },
             CommandResult::Cpu(cpu) => cpu.fmt(f),
             CommandResult::Ram(ram) => ram.fmt(f),
+            CommandResult::Ping(ping) => ping.fmt(f),
         }
     }
 }
@@ -361,6 +392,7 @@ impl Serialize for CommandResult {
             CommandResult::Disks(disks) => disks.serialize(serializer),
             CommandResult::Cpu(cpu) => cpu.serialize(serializer),
             CommandResult::Ram(ram) => ram.serialize(serializer),
+            CommandResult::Ping(ping) => { ping.serialize(serializer) },
         }
     }
 }
