@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
 
 use anyhow::Result;
-use colored::*;
 use chrono::{DateTime, Local};
+use colored::*;
 use rsntp::AsyncSntpClient;
 use serde::Serialize;
 
@@ -70,9 +70,13 @@ impl Display for Time {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.hour.to_string().bold())?;
         write!(f, ":{}", self.minute.to_string().bold())?;
-        write!(f, ":{}", self.second.to_string())?;
+        write!(f, ":{}", self.second)?;
         write!(f, " UTC {}", self.timezone.bright_cyan())?;
-        write!(f, "\n±{:.4} seconds", self.offset.to_string().bright_magenta())
+        write!(
+            f,
+            "\n±{:.4} seconds",
+            self.offset.to_string().bright_magenta()
+        )
     }
 }
 

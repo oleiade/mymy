@@ -6,13 +6,12 @@ use std::vec;
 use anyhow::Result;
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
+use sysinfo::{NetworkExt, System, SystemExt};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle, AsyncResolver};
-use sysinfo::{NetworkExt, System, SystemExt};
+use trust_dns_resolver::{system_conf, AsyncResolver, TokioAsyncResolver, TokioHandle};
 
 use crate::format::human_readable_duration;
-
 
 #[derive(Serialize)]
 pub struct IpReport {
@@ -140,7 +139,7 @@ pub async fn list_dns_servers() -> Result<Vec<String>> {
         .map(|ns| {
             ns.socket_addr
                 .to_string()
-                .splitn(2, ':')
+                .split(':')
                 .next()
                 .unwrap()
                 .to_owned()
@@ -193,7 +192,7 @@ impl Display for IpCategory {
 /// println!("interfaces: {:?}", interfaces);
 /// ```
 pub async fn interfaces() -> Result<Vec<Interface>> {
-    spawn_blocking(|| get_if_addrs::get_if_addrs())
+    spawn_blocking(get_if_addrs::get_if_addrs)
         .await??
         .into_iter()
         .try_fold(Vec::new(), |mut acc, i| {
@@ -222,17 +221,17 @@ impl Display for Interface {
 }
 
 /// Lists those interfaces that have an associated mac address.
-/// 
+///
 /// # Returns
-/// 
+///
 /// A vector holding the mac address and the name of the intreface.
-/// 
+///
 /// # Errors
-/// 
+///
 /// If the system configuration cannot be read.
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// let mac_addresses = ip::_mac_addresses().unwrap();
 /// for e in mac_addresses {
@@ -240,43 +239,43 @@ impl Display for Interface {
 /// }
 /// ```
 pub async fn mac_addresses() -> Result<Vec<MacAddress>> {
-     let mut system_info = System::new();
+    let mut system_info = System::new();
 
-     // Get only the network information of the system
-     system_info.refresh_networks_list();
-     let networks = system_info.networks();
-     let mut addresses : Vec<MacAddress> = Vec::new(); 
+    // Get only the network information of the system
+    system_info.refresh_networks_list();
+    let networks = system_info.networks();
+    let mut addresses: Vec<MacAddress> = Vec::new();
 
-     for (interface_name, network) in networks {
+    for (interface_name, network) in networks {
         let mac_address = network.mac_address();
 
-        // Some interfaces could not have a mac address       
-        if !mac_address.is_unspecified(){
+        // Some interfaces could not have a mac address
+        if !mac_address.is_unspecified() {
             let mut pretty_address = String::with_capacity(17);
             for (pos, e) in mac_address.0.to_vec().iter().enumerate() {
                 if pos != 0 {
                     pretty_address.push(':');
                 }
-            // Format the number as HEX pairs
-            pretty_address.push_str(&format!("{:02X}", e));
-        }
-            addresses.push(MacAddress { 
-                name: interface_name.to_string(), 
+                // Format the number as HEX pairs
+                pretty_address.push_str(&format!("{:02X}", e));
+            }
+            addresses.push(MacAddress {
+                name: interface_name.to_string(),
                 address: pretty_address.to_owned(),
-          });
+            });
         }
-     }
-     Ok(addresses)
+    }
+    Ok(addresses)
 }
 
 /// A Mac Address
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MacAddress {
     /// The  network interface name
-    #[serde(rename(deserialize = "interface_name", serialize= "interface_name"))]
+    #[serde(rename(deserialize = "interface_name", serialize = "interface_name"))]
     name: String,
     /// The Mac address
-    #[serde(rename(deserialize = "mac_address", serialize= "mac_address"))]
+    #[serde(rename(deserialize = "mac_address", serialize = "mac_address"))]
     address: String,
 }
 
@@ -284,12 +283,10 @@ impl Display for MacAddress {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}\t{}", self.name, self.address)
     }
-
 }
 
 pub async fn resolve_domain(domain: &str) -> Option<IpAddr> {
-    let resolver = AsyncResolver::tokio_from_system_conf()
-        .expect("failed to create resolver");
+    let resolver = AsyncResolver::tokio_from_system_conf().expect("failed to create resolver");
     match resolver.lookup_ip(domain).await {
         Ok(lookup) => lookup.iter().next(),
         Err(_) => None,
@@ -308,33 +305,33 @@ pub async fn ping_once(target: IpAddr, timeout: Duration) -> Result<Ping> {
     Ok(Ping { target, duration })
 }
 
-async fn median_latency(target: IpAddr, interval: Duration, timeout: Duration) -> Option<f64> {
-    let mut samples = Vec::new();
+// async fn median_latency(target: IpAddr, interval: Duration, timeout: Duration) -> Option<f64> {
+//     let mut samples = Vec::new();
 
-    loop {
-        if let Ok(ping) = ping_once(target, timeout).await {
-            samples.push(ping.duration);
-            if samples.len() >= 10 {
-                break;
-            }
-        }
+//     loop {
+//         if let Ok(ping) = ping_once(target, timeout).await {
+//             samples.push(ping.duration);
+//             if samples.len() >= 10 {
+//                 break;
+//             }
+//         }
 
-        tokio::time::sleep(interval).await;
-    }
+//         tokio::time::sleep(interval).await;
+//     }
 
-    if samples.is_empty() {
-        return None;
-    } else {
-        samples.sort_unstable();
+//     if samples.is_empty() {
+//         None
+//     } else {
+//         samples.sort_unstable();
 
-        let mid = samples.len() / 2;
-        if samples.len() % 2 == 0 {
-            Some((samples[mid - 1] + samples[mid]).as_secs_f64() / 2.0)
-        } else {
-            Some(samples[mid].as_secs_f64())
-        }
-    }
-}
+//         let mid = samples.len() / 2;
+//         if samples.len() % 2 == 0 {
+//             Some((samples[mid - 1] + samples[mid]).as_secs_f64() / 2.0)
+//         } else {
+//             Some(samples[mid].as_secs_f64())
+//         }
+//     }
+// }
 
 #[derive(Serialize)]
 pub struct Ping {
@@ -344,6 +341,11 @@ pub struct Ping {
 
 impl Display for Ping {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\t{}", self.target, human_readable_duration(self.duration))
+        write!(
+            f,
+            "{}\t{}",
+            self.target,
+            human_readable_duration(self.duration)
+        )
     }
 }

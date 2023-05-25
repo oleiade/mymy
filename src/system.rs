@@ -10,32 +10,38 @@ use crate::output::{create_named, Named, NamedKind};
 
 /// returns the hostname of the system as a Named enum
 pub async fn hostname() -> Result<Named> {
-    create_named(|| async { whoami::hostname().to_string() }, NamedKind::Hostname).await
+    create_named(|| async { whoami::hostname() }, NamedKind::Hostname).await
 }
 
 /// returns the username of the system as a Named enum
 pub async fn username() -> Result<Named> {
-    create_named(|| async { whoami::username().to_string() }, NamedKind::Username).await
+    create_named(|| async { whoami::username() }, NamedKind::Username).await
 }
 
 /// returns the device name of the system as a Named enum
 pub async fn device_name() -> Result<Named> {
-    create_named(|| async { whoami::devicename().to_string() }, NamedKind::DeviceName).await
+    create_named(|| async { whoami::devicename() }, NamedKind::DeviceName).await
 }
 
 /// returns the operating system of the system as a Named enum
 pub async fn os() -> Result<Named> {
-    create_named(|| async { whoami::distro().to_string() }, NamedKind::Os).await
+    create_named(|| async { whoami::distro() }, NamedKind::Os).await
 }
 
 /// returns the architecture of the system as a Named enum
 pub async fn architecture() -> Result<Named> {
-    create_named(|| async { whoami::arch().to_string() }, NamedKind::Architecture).await
+    create_named(
+        || async { whoami::arch().to_string() },
+        NamedKind::Architecture,
+    )
+    .await
 }
 
 /// returns the CPU of the system as a Cpu struct
 pub async fn cpus() -> Result<Cpu> {
-    let mut system = System::new_with_specifics(RefreshKind::new().with_cpu(CpuRefreshKind::new().with_frequency()));
+    let mut system = System::new_with_specifics(
+        RefreshKind::new().with_cpu(CpuRefreshKind::new().with_frequency()),
+    );
     system.refresh_cpu();
 
     let cpus = system.cpus();
@@ -63,7 +69,13 @@ pub struct Cpu {
 
 impl Display for Cpu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}, {} cores running at {} GHz", self.brand.bold(), self.core_count.to_string().cyan(), self.frequency.to_string().green())
+        write!(
+            f,
+            "{}, {} cores running at {} GHz",
+            self.brand.bold(),
+            self.core_count.to_string().cyan(),
+            self.frequency.to_string().green()
+        )
     }
 }
 
@@ -102,12 +114,12 @@ impl Display for Ram {
         let used = human_readable_size(self.used);
         let used_percentage = (self.used as f64 / self.total as f64) * 100.0;
 
-        println!("used percentage: {}", used_percentage);
-
         let (used_colored, used_percentage_colored) = match used_percentage {
-            _ if used_percentage > 90.0 => (used.red(), format!("{:.1}", used_percentage).to_string().red()),
-            _ if used_percentage > 70.0 => (used.yellow(), format!("{:.1}", used_percentage).to_string().yellow()),
-            _ => (used.green(), format!("{:.1}", used_percentage).to_string().green()),
+            _ if used_percentage > 90.0 => (used.red(), format!("{:.1}", used_percentage).red()),
+            _ if used_percentage > 70.0 => {
+                (used.yellow(), format!("{:.1}", used_percentage).yellow())
+            }
+            _ => (used.green(), format!("{:.1}", used_percentage).green()),
         };
 
         write!(
