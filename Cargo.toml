@@ -22,7 +22,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.98"
-colored = "2.2.0"
+colored = "3.0.0"
 get_if_addrs = "0.5.3"
 human-panic = "2.0.2"
 itertools = "0.10.5"
