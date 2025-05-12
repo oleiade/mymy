@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use human_panic::setup_panic;
 use serde::{Serialize, Serializer};
@@ -13,11 +13,12 @@ mod output;
 mod storage;
 mod system;
 
-
 #[derive(Debug, Parser)]
 #[command(name = "my")]
 #[command(about = "Get essential information about your device")]
-#[command(long_about = "Easily access important details about your device, such as IP addresses, DNS servers, date, time, and more.")]
+#[command(
+    long_about = "Easily access important details about your device, such as IP addresses, DNS servers, date, time, and more."
+)]
 pub struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
@@ -30,9 +31,11 @@ pub struct Cli {
 enum Commands {
     #[command(name = "ips")]
     #[command(about = "Display your IP addresses")]
-    #[command(long_about = "Find all IP addresses associated with your system, both local and external.\n\
+    #[command(
+        long_about = "Find all IP addresses associated with your system, both local and external.\n\
     By default, it shows both public and local IP addresses.\n\
-    Use the --only flag to display one specific category.")]
+    Use the --only flag to display one specific category."
+    )]
     Ips {
         #[arg(long)]
         only: Option<network::IpCategory>,
@@ -40,28 +43,36 @@ enum Commands {
 
     #[command(name = "dns")]
     #[command(about = "Display your system's DNS servers")]
-    #[command(long_about = "Show the DNS servers configured on your system, listed in the order they are used.")]
+    #[command(
+        long_about = "Show the DNS servers configured on your system, listed in the order they are used."
+    )]
     Dns,
 
     // #[command(arg_required_else_help = true)]
     #[command(name = "date")]
     #[command(about = "Display your system's date")]
-    #[command(long_about = "Show the current date on your system in a human-readable format.\n\
-    Example: Saturday, 8 April, 2023, week 14")]
+    #[command(
+        long_about = "Show the current date on your system in a human-readable format.\n\
+    Example: Saturday, 8 April, 2023, week 14"
+    )]
     Date,
 
     #[command(name = "time")]
     #[command(about = "Display your system's current time")]
-    #[command(long_about = "Show the current time on your system, along with the offset from the central NTP\n\
+    #[command(
+        long_about = "Show the current time on your system, along with the offset from the central NTP\n\
     clock server, in a 24-hour human-readable format.\n
-    Example: 20:20:2 UTC +02:00 ±0.0672 seconds")]
+    Example: 20:20:2 UTC +02:00 ±0.0672 seconds"
+    )]
     Time,
 
     #[command(name = "datetime")]
     #[command(about = "Display your system's current date and time")]
-    #[command(long_about = "Show the current date and time on your system, along with the offset from\n\
+    #[command(
+        long_about = "Show the current date and time on your system, along with the offset from\n\
     the central NTP clock server, in a human-readable format.\n\
-    Example: Saturday, 8 April, 2023, week 14 20:20:2 UTC +02:00 ±0.0684 seconds")]
+    Example: Saturday, 8 April, 2023, week 14 20:20:2 UTC +02:00 ±0.0684 seconds"
+    )]
     Datetime,
 
     #[command(name = "hostname")]
@@ -81,7 +92,9 @@ enum Commands {
 
     #[command(name = "os")]
     #[command(about = "Display your system's OS name and version")]
-    #[command(long_about = "Show the name and version of the operating system installed on your system.")]
+    #[command(
+        long_about = "Show the name and version of the operating system installed on your system."
+    )]
     Os,
 
     #[command(name = "architecture")]
@@ -91,12 +104,16 @@ enum Commands {
 
     #[command(name = "interfaces")]
     #[command(about = "Display your system's network interfaces")]
-    #[command(long_about = "List all the network interfaces configured on your system, presented in the order they are used.")]
+    #[command(
+        long_about = "List all the network interfaces configured on your system, presented in the order they are used."
+    )]
     Interfaces,
 
     #[command(name = "disks")]
     #[command(about = "Display your system's disks")]
-    #[command(long_about = "Lists all the disks installed on your system, providing details such as disk name, type, free space, total capacity, and percentage of free space.")]
+    #[command(
+        long_about = "Lists all the disks installed on your system, providing details such as disk name, type, free space, total capacity, and percentage of free space."
+    )]
     Disks,
 
     #[command(name = "cpu")]
@@ -110,7 +127,6 @@ enum Commands {
     Ram,
 }
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
     // Enable human-readable panic messages
@@ -123,22 +139,26 @@ async fn main() -> Result<()> {
     if let Some(command) = &cli.command {
         let result: CommandResult = match command {
             Commands::Date => CommandResult::Date(
-                datetime::date().await
-                    .with_context(|| "looking up the system's date failed")?
+                datetime::date()
+                    .await
+                    .with_context(|| "looking up the system's date failed")?,
             ),
             Commands::Time => CommandResult::Time(
-                datetime::time().await
-                    .with_context(|| "looking up the system's time failed")?
+                datetime::time()
+                    .await
+                    .with_context(|| "looking up the system's time failed")?,
             ),
             Commands::Datetime => CommandResult::Datetime(
-                datetime::datetime().await
-                    .with_context(|| "looking up the system's datetime failed")?
+                datetime::datetime()
+                    .await
+                    .with_context(|| "looking up the system's datetime failed")?,
             ),
             Commands::Dns => CommandResult::Dns(
-                network::list_dns_servers().await
-                    .with_context(|| "listing the system's dns servers failed")?
+                network::list_dns_servers()
+                    .await
+                    .with_context(|| "listing the system's dns servers failed")?,
             ),
-            Commands::Ips{ only } => match only {
+            Commands::Ips { only } => match only {
                 Some(network::IpCategory::Public) => {
                     let public_ip = network::query_public_ip(
                         network::OPENDNS_SERVER_HOST,
@@ -156,16 +176,17 @@ async fn main() -> Result<()> {
                         category: network::IpCategory::Public,
                         address: public_ip,
                     }])
-                },
+                }
                 Some(network::IpCategory::Local) => {
-                    let local_ip = local_ip_address::local_ip()
-                        .with_context(|| "looking up local ip failed; reason: querying local ip address failed")?;
+                    let local_ip = local_ip_address::local_ip().with_context(
+                        || "looking up local ip failed; reason: querying local ip address failed",
+                    )?;
 
                     CommandResult::Ips(vec![network::Ip {
                         category: network::IpCategory::Local,
                         address: local_ip,
                     }])
-                },
+                }
                 Some(network::IpCategory::Any) | None => {
                     let public_ip = network::query_public_ip(
                         network::OPENDNS_SERVER_HOST,
@@ -180,8 +201,9 @@ async fn main() -> Result<()> {
                         )
                     })?;
 
-                    let local_ip = local_ip_address::local_ip()
-                        .with_context(|| "listing ips failed; reason: querying local ip address failed")?;
+                    let local_ip = local_ip_address::local_ip().with_context(
+                        || "listing ips failed; reason: querying local ip address failed",
+                    )?;
 
                     CommandResult::Ips(vec![
                         network::Ip {
@@ -196,39 +218,49 @@ async fn main() -> Result<()> {
                 }
             },
             Commands::Hostname => CommandResult::Hostname(
-                system::hostname().await
-                    .with_context(|| "looking up the system's hostname failed")?
+                system::hostname()
+                    .await
+                    .with_context(|| "looking up the system's hostname failed")?,
             ),
             Commands::Username => CommandResult::Username(
-                system::username().await
-                    .with_context(|| "looking up the user's username failed")?
+                system::username()
+                    .await
+                    .with_context(|| "looking up the user's username failed")?,
             ),
             Commands::DeviceName => CommandResult::DeviceName(
-                system::device_name().await
-                    .with_context(|| "looking up the systems' device name failed")?
+                system::device_name()
+                    .await
+                    .with_context(|| "looking up the systems' device name failed")?,
             ),
             Commands::Os => CommandResult::Os(
-                system::os().await
-                    .with_context(|| "looking up the system's OS name failed")?
+                system::os()
+                    .await
+                    .with_context(|| "looking up the system's OS name failed")?,
             ),
             Commands::Architecture => CommandResult::Architecture(
-                system::architecture().await
-                    .with_context(|| "looking up the CPU's architecture fialed")?
+                system::architecture()
+                    .await
+                    .with_context(|| "looking up the CPU's architecture fialed")?,
             ),
             Commands::Interfaces => CommandResult::Interfaces(
-                network::interfaces().await
-                    .with_context(|| "listing the system's network interfaces failed")?
+                network::interfaces()
+                    .await
+                    .with_context(|| "listing the system's network interfaces failed")?,
             ),
             Commands::Disks => CommandResult::Disks(
-                storage::list_disks().await
-                    .with_context(|| "listing the disks failed")?
+                storage::list_disks()
+                    .await
+                    .with_context(|| "listing the disks failed")?,
             ),
             Commands::Cpu => CommandResult::Cpu(
-                system::cpus().await
-                    .with_context(|| "looking up the system's CPU information failed")?),
+                system::cpus()
+                    .await
+                    .with_context(|| "looking up the system's CPU information failed")?,
+            ),
             Commands::Ram => CommandResult::Ram(
-                system::ram().await
-                    .with_context(|| "looking up the system's RAM information failed")?
+                system::ram()
+                    .await
+                    .with_context(|| "looking up the system's RAM information failed")?,
             ),
         };
 
@@ -265,7 +297,7 @@ enum CommandResult {
     Interfaces(Vec<network::Interface>),
     Disks(Vec<storage::DiskInfo>),
     Cpu(system::Cpu),
-    Ram(system::Ram)
+    Ram(system::Ram),
 }
 
 impl Display for CommandResult {
@@ -296,7 +328,7 @@ impl Display for CommandResult {
                         .collect::<Vec<String>>()
                         .join("\n")
                 )
-            },
+            }
             CommandResult::Disks(disks) => {
                 write!(
                     f,
@@ -307,7 +339,7 @@ impl Display for CommandResult {
                         .collect::<Vec<String>>()
                         .join("\n")
                 )
-            },
+            }
             CommandResult::Cpu(cpu) => cpu.fmt(f),
             CommandResult::Ram(ram) => ram.fmt(f),
         }

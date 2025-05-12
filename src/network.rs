@@ -6,7 +6,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{system_conf, TokioAsyncResolver, TokioHandle};
+use trust_dns_resolver::{TokioAsyncResolver, TokioHandle, system_conf};
 
 #[derive(Serialize)]
 pub struct IpReport {
