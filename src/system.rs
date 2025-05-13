@@ -3,7 +3,7 @@ use std::fmt::Display;
 use anyhow::Result;
 use colored::*;
 use serde::Serialize;
-use sysinfo::{CpuExt, CpuRefreshKind, RefreshKind, System, SystemExt};
+use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 use crate::format::human_readable_size;
 use crate::output::{Named, NamedKind, create_named};
@@ -48,10 +48,8 @@ pub async fn architecture() -> Result<Named> {
 
 /// returns the CPU of the system as a Cpu struct
 pub async fn cpus() -> Result<Cpu> {
-    let mut system = System::new_with_specifics(
-        RefreshKind::new().with_cpu(CpuRefreshKind::new().with_frequency()),
-    );
-    system.refresh_cpu();
+    let system =
+        System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::everything()));
 
     let cpus = system.cpus();
     let reference_cpu = cpus.get(0).unwrap();
@@ -90,8 +88,9 @@ impl Display for Cpu {
 
 /// returns the RAM of the system as a Ram struct
 pub async fn ram() -> Result<Ram> {
-    let mut system = System::new_with_specifics(RefreshKind::new().with_memory());
-    system.refresh_memory();
+    let system = System::new_with_specifics(
+        RefreshKind::nothing().with_memory(MemoryRefreshKind::everything()),
+    );
 
     Ok(Ram {
         total: system.total_memory(),
