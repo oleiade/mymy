@@ -6,7 +6,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{TokioAsyncResolver, TokioHandle, system_conf};
+use trust_dns_resolver::{system_conf, TokioAsyncResolver};
 
 #[derive(Serialize)]
 pub struct IpReport {
@@ -83,7 +83,7 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
     resolver_opts.timeout = std::time::Duration::from_secs(5);
 
     // Create the resolver
-    let resolver = TokioAsyncResolver::new(resolver_config, resolver_opts, TokioHandle)?;
+    let resolver = TokioAsyncResolver::tokio(resolver_config, resolver_opts);
 
     // Query the public IP address from the OpenDNS server
     let ipv4_response = resolver.ipv4_lookup("myip.opendns.com").await?;
