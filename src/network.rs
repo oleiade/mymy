@@ -8,29 +8,6 @@ use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
 use trust_dns_resolver::{system_conf, TokioAsyncResolver};
 
-#[derive(Serialize)]
-pub struct IpReport {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    public: Option<IpAddr>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    local: Option<IpAddr>,
-}
-
-impl Display for IpReport {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(public) = &self.public {
-            write!(f, "public\t{}", public)?;
-        }
-
-        if let Some(local) = &self.local {
-            write!(f, "local\t{}", local)?;
-        }
-
-        Ok(())
-    }
-}
-
 /// A categorized IP address.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Ip {
