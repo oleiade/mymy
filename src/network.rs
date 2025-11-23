@@ -6,7 +6,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{system_conf, TokioAsyncResolver};
+use trust_dns_resolver::{TokioAsyncResolver, system_conf};
 
 /// A categorized IP address.
 #[derive(Serialize, Deserialize, Debug)]
