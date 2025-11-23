@@ -6,12 +6,19 @@ pub fn human_readable_size(bytes: u64) -> String {
     const TERA: u64 = 1024 * GIGA;
     const PETA: u64 = 1024 * TERA;
 
+    fn format_scaled(bytes: u64, unit: u64, suffix: &str) -> String {
+        let whole = bytes / unit;
+        let remainder = bytes % unit;
+        let decimals = remainder * 100 / unit;
+        format!("{whole}.{decimals:02} {suffix}")
+    }
+
     match bytes {
-        _ if bytes < KILO => format!("{} B", bytes),
-        _ if bytes < MEGA => format!("{:.2} KiB", bytes as f64 / KILO as f64),
-        _ if bytes < GIGA => format!("{:.2} MiB", bytes as f64 / MEGA as f64),
-        _ if bytes < TERA => format!("{:.2} GiB", bytes as f64 / GIGA as f64),
-        _ if bytes < PETA => format!("{:.2} TiB", bytes as f64 / TERA as f64),
-        _ => format!("{:.2} PiB", bytes as f64 / PETA as f64),
+        _ if bytes < KILO => format!("{bytes} B"),
+        _ if bytes < MEGA => format_scaled(bytes, KILO, "KiB"),
+        _ if bytes < GIGA => format_scaled(bytes, MEGA, "MiB"),
+        _ if bytes < TERA => format_scaled(bytes, GIGA, "GiB"),
+        _ if bytes < PETA => format_scaled(bytes, TERA, "TiB"),
+        _ => format_scaled(bytes, PETA, "PiB"),
     }
 }

@@ -1,7 +1,8 @@
+use std::convert::TryFrom;
 use std::fmt::Display;
 
-use anyhow::Result;
-use colored::*;
+use anyhow::{Context, Result};
+use colored::Colorize;
 use serde::Serialize;
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
@@ -16,25 +17,17 @@ pub async fn hostname() -> Result<Named> {
 
 /// returns the username of the system as a Named enum
 pub async fn username() -> Result<Named> {
-    create_named(
-        || async { whoami::username().to_string() },
-        NamedKind::Username,
-    )
-    .await
+    create_named(|| async { whoami::username() }, NamedKind::Username).await
 }
 
 /// returns the device name of the system as a Named enum
 pub async fn device_name() -> Result<Named> {
-    create_named(
-        || async { whoami::devicename().to_string() },
-        NamedKind::DeviceName,
-    )
-    .await
+    create_named(|| async { whoami::devicename() }, NamedKind::DeviceName).await
 }
 
 /// returns the operating system of the system as a Named enum
 pub async fn os() -> Result<Named> {
-    create_named(|| async { whoami::distro().to_string() }, NamedKind::Os).await
+    create_named(|| async { whoami::distro() }, NamedKind::Os).await
 }
 
 /// returns the architecture of the system as a Named enum
@@ -47,12 +40,14 @@ pub async fn architecture() -> Result<Named> {
 }
 
 /// returns the CPU of the system as a Cpu struct
-pub async fn cpus() -> Result<Cpu> {
+pub fn cpus() -> Result<Cpu> {
     let system =
         System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::everything()));
 
     let cpus = system.cpus();
-    let reference_cpu = cpus.get(0).unwrap();
+    let reference_cpu = cpus
+        .first()
+        .context("no CPU information available from sysinfo")?;
 
     Ok(Cpu {
         brand: reference_cpu.brand().to_string(),
@@ -80,24 +75,24 @@ impl Display for Cpu {
             f,
             "{}, {} cores running at {} GHz",
             self.brand.bold(),
-            self.core_count.to_string().cyan(),
-            self.frequency.to_string().green()
+            format!("{}", self.core_count).cyan(),
+            format!("{}", self.frequency).green()
         )
     }
 }
 
 /// returns the RAM of the system as a Ram struct
-pub async fn ram() -> Result<Ram> {
+pub fn ram() -> Ram {
     let system = System::new_with_specifics(
         RefreshKind::nothing().with_memory(MemoryRefreshKind::everything()),
     );
 
-    Ok(Ram {
+    Ram {
         total: system.total_memory(),
         used: system.used_memory(),
         free: system.free_memory(),
         available: system.available_memory(),
-    })
+    }
 }
 
 /// Describes the RAM of a system
@@ -120,23 +115,19 @@ impl Display for Ram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let total = human_readable_size(self.total);
         let used = human_readable_size(self.used);
-        let used_percentage = (self.used as f64 / self.total as f64) * 100.0;
+        let percentage_tenths = if self.total == 0 {
+            0_u64
+        } else {
+            u64::try_from(u128::from(self.used) * 1000 / u128::from(self.total)).unwrap_or(u64::MAX)
+        };
+        let integer = percentage_tenths / 10;
+        let decimal = percentage_tenths % 10;
+        let percentage_display = format!("{integer}.{decimal}");
 
-        println!("used percentage: {}", used_percentage);
-
-        let (used_colored, used_percentage_colored) = match used_percentage {
-            _ if used_percentage > 90.0 => (
-                used.red(),
-                format!("{:.1}", used_percentage).to_string().red(),
-            ),
-            _ if used_percentage > 70.0 => (
-                used.yellow(),
-                format!("{:.1}", used_percentage).to_string().yellow(),
-            ),
-            _ => (
-                used.green(),
-                format!("{:.1}", used_percentage).to_string().green(),
-            ),
+        let (used_colored, used_percentage_colored) = match percentage_tenths {
+            p if p > 900 => (used.red(), percentage_display.as_str().red()),
+            p if p > 700 => (used.yellow(), percentage_display.as_str().yellow()),
+            _ => (used.green(), percentage_display.as_str().green()),
         };
 
         write!(

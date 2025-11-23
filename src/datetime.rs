@@ -1,26 +1,26 @@
 use std::fmt::{Display, Formatter};
 
 use anyhow::Result;
-use chrono::{DateTime, Local};
-use colored::*;
+use chrono::{DateTime, Datelike, Local, Timelike};
+use colored::Colorize;
 use rsntp::AsyncSntpClient;
 use serde::Serialize;
 
 /// Returns the system date.
-pub async fn date() -> Result<Date> {
+pub fn date() -> Date {
     let dt = Local::now();
     let now_with_tz = dt.with_timezone(&Local);
 
-    Ok(now_with_tz.into())
+    now_with_tz.into()
 }
 
 #[derive(Serialize)]
 pub struct Date {
     day_name: String,
-    day_number: u8,
+    day_number: u32,
     month_name: String,
     year: i32,
-    week_number: u8,
+    week_number: u32,
 }
 
 impl Display for Date {
@@ -34,12 +34,12 @@ impl Display for Date {
 
 impl From<DateTime<Local>> for Date {
     fn from(dt: DateTime<Local>) -> Self {
-        Date {
+        Self {
             day_name: dt.format("%A").to_string(),
-            day_number: dt.format("%d").to_string().parse::<u8>().unwrap(),
+            day_number: dt.day(),
             month_name: dt.format("%B").to_string(),
-            year: dt.format("%Y").to_string().parse::<i32>().unwrap(),
-            week_number: dt.format("%U").to_string().parse::<u8>().unwrap(),
+            year: dt.year(),
+            week_number: dt.iso_week().week(),
         }
     }
 }
@@ -59,33 +59,36 @@ pub async fn time() -> Result<Time> {
 
 #[derive(Serialize)]
 pub struct Time {
-    hour: u8,
-    minute: u8,
-    second: u8,
+    hour: u32,
+    minute: u32,
+    second: u32,
     timezone: String,
     offset: f64,
 }
 
 impl Display for Time {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.hour.to_string().bold())?;
-        write!(f, ":{}", self.minute.to_string().bold())?;
-        write!(f, ":{}", self.second.to_string())?;
+        let hour = format!("{:02}", self.hour).bold();
+        let minute = format!("{:02}", self.minute).bold();
+        let second = format!("{:02}", self.second);
+        write!(f, "{hour}")?;
+        write!(f, ":{minute}")?;
+        write!(f, ":{second}")?;
         write!(f, " UTC {}", self.timezone.bright_cyan())?;
         write!(
             f,
-            "\n±{:.4} seconds",
-            self.offset.to_string().bright_magenta()
+            "\n±{} seconds",
+            format!("{:.4}", self.offset).bright_magenta()
         )
     }
 }
 
 impl From<DateTime<Local>> for Time {
     fn from(dt: DateTime<Local>) -> Self {
-        Time {
-            hour: dt.format("%H").to_string().parse::<u8>().unwrap(),
-            minute: dt.format("%M").to_string().parse::<u8>().unwrap(),
-            second: dt.format("%S").to_string().parse::<u8>().unwrap(),
+        Self {
+            hour: dt.hour(),
+            minute: dt.minute(),
+            second: dt.second(),
             timezone: dt.format("%Z").to_string(),
             offset: 0.0,
         }
@@ -94,7 +97,7 @@ impl From<DateTime<Local>> for Time {
 
 /// Returns the system date and time.
 pub async fn datetime() -> Result<Datetime> {
-    let date = date().await?;
+    let date = date();
     let time = time().await?;
 
     Ok(Datetime { date, time })

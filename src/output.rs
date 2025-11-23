@@ -31,11 +31,11 @@ pub enum NamedKind {
 impl Named {
     fn value(&self) -> &str {
         match self {
-            Named::Hostname(value)
-            | Named::Username(value)
-            | Named::DeviceName(value)
-            | Named::Os(value)
-            | Named::Architecture(value) => value,
+            Self::Hostname(value)
+            | Self::Username(value)
+            | Self::DeviceName(value)
+            | Self::Os(value)
+            | Self::Architecture(value) => value,
         }
     }
 }
@@ -53,17 +53,17 @@ impl Serialize for Named {
     {
         let mut map = serializer.serialize_map(Some(1))?;
         match self {
-            Named::Hostname(value) => map.serialize_entry("hostname", value)?,
-            Named::Username(value) => map.serialize_entry("username", value)?,
-            Named::DeviceName(value) => map.serialize_entry("device_name", value)?,
-            Named::Os(value) => map.serialize_entry("os", value)?,
-            Named::Architecture(value) => map.serialize_entry("architecture", value)?,
+            Self::Hostname(value) => map.serialize_entry("hostname", value)?,
+            Self::Username(value) => map.serialize_entry("username", value)?,
+            Self::DeviceName(value) => map.serialize_entry("device_name", value)?,
+            Self::Os(value) => map.serialize_entry("os", value)?,
+            Self::Architecture(value) => map.serialize_entry("architecture", value)?,
         }
         map.end()
     }
 }
 
-/// create_named is a function that creates a Named enum from a function
+/// `create_named` is a function that creates a `Named` enum from a function
 /// that returns a String.
 pub async fn create_named<F, Fut>(func: F, data_type: NamedKind) -> Result<Named>
 where
