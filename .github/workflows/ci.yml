@@ -1,0 +1,14 @@
+name: Rust
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions: {}
+
+jobs:
+  ci:
+    uses: oleiade/ci/.github/workflows/rust.yml@main
+    secrets: inherit

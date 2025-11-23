@@ -1,35 +1,12 @@
 use std::fmt::{Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{system_conf, TokioAsyncResolver};
-
-#[derive(Serialize)]
-pub struct IpReport {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    public: Option<IpAddr>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    local: Option<IpAddr>,
-}
-
-impl Display for IpReport {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(public) = &self.public {
-            write!(f, "public\t{}", public)?;
-        }
-
-        if let Some(local) = &self.local {
-            write!(f, "local\t{}", local)?;
-        }
-
-        Ok(())
-    }
-}
+use trust_dns_resolver::{TokioAsyncResolver, system_conf};
 
 /// A categorized IP address.
 #[derive(Serialize, Deserialize, Debug)]
@@ -88,7 +65,10 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
     // Query the public IP address from the OpenDNS server
     let ipv4_response = resolver.ipv4_lookup("myip.opendns.com").await?;
 
-    let ipv4: &Ipv4Addr = ipv4_response.iter().next().unwrap();
+    let ipv4: &Ipv4Addr = ipv4_response
+        .iter()
+        .next()
+        .context("public IP lookup returned no IPv4 records")?;
 
     Ok(IpAddr::V4(*ipv4))
 }
@@ -126,19 +106,12 @@ pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
 /// let dns_servers = ip::list_dns_servers().unwrap();
 /// println!("dns servers: {:?}", dns_servers);
 /// ```
-pub async fn list_dns_servers() -> Result<Vec<String>> {
+pub fn list_dns_servers() -> Result<Vec<String>> {
     let (conf, _) = system_conf::read_system_conf()?;
     let mut nameservers = conf
         .name_servers()
         .iter()
-        .map(|ns| {
-            ns.socket_addr
-                .to_string()
-                .splitn(2, ':')
-                .next()
-                .unwrap()
-                .to_owned()
-        })
+        .map(|ns| ns.socket_addr.ip().to_string())
         .collect::<Vec<_>>();
 
     nameservers.dedup();
@@ -162,9 +135,9 @@ pub enum IpCategory {
 impl Display for IpCategory {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            IpCategory::Public => write!(f, "public"),
-            IpCategory::Local => write!(f, "local"),
-            IpCategory::Any => write!(f, "*"),
+            Self::Public => write!(f, "public"),
+            Self::Local => write!(f, "local"),
+            Self::Any => write!(f, "*"),
         }
     }
 }
@@ -187,7 +160,7 @@ impl Display for IpCategory {
 /// println!("interfaces: {:?}", interfaces);
 /// ```
 pub async fn interfaces() -> Result<Vec<Interface>> {
-    spawn_blocking(|| get_if_addrs::get_if_addrs())
+    spawn_blocking(get_if_addrs::get_if_addrs)
         .await??
         .into_iter()
         .try_fold(Vec::new(), |mut acc, i| {

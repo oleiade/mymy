@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::future::Future;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -137,148 +138,26 @@ async fn main() -> Result<()> {
 
     // Execute the appropriate command
     if let Some(command) = &cli.command {
-        let result: CommandResult = match command {
-            Commands::Date => CommandResult::Date(
-                datetime::date()
-                    .await
-                    .with_context(|| "looking up the system's date failed")?,
-            ),
-            Commands::Time => CommandResult::Time(
-                datetime::time()
-                    .await
-                    .with_context(|| "looking up the system's time failed")?,
-            ),
-            Commands::Datetime => CommandResult::Datetime(
-                datetime::datetime()
-                    .await
-                    .with_context(|| "looking up the system's datetime failed")?,
-            ),
-            Commands::Dns => CommandResult::Dns(
-                network::list_dns_servers()
-                    .await
-                    .with_context(|| "listing the system's dns servers failed")?,
-            ),
-            Commands::Ips { only } => match only {
-                Some(network::IpCategory::Public) => {
-                    let public_ip = network::query_public_ip(
-                        network::OPENDNS_SERVER_HOST,
-                        network::DNS_DEFAULT_PORT,
-                    )
-                    .await
-                    .with_context(|| {
-                        format!(
-                            "looking up public ip failed; reason: querying dns server {} on port {} failed",
-                            network::OPENDNS_SERVER_HOST,
-                            network::DNS_DEFAULT_PORT
-                        )
-                    })?;
-                    CommandResult::Ips(vec![network::Ip {
-                        category: network::IpCategory::Public,
-                        address: public_ip,
-                    }])
-                }
-                Some(network::IpCategory::Local) => {
-                    let local_ip = local_ip_address::local_ip().with_context(
-                        || "looking up local ip failed; reason: querying local ip address failed",
-                    )?;
-
-                    CommandResult::Ips(vec![network::Ip {
-                        category: network::IpCategory::Local,
-                        address: local_ip,
-                    }])
-                }
-                Some(network::IpCategory::Any) | None => {
-                    let public_ip = network::query_public_ip(
-                        network::OPENDNS_SERVER_HOST,
-                        network::DNS_DEFAULT_PORT,
-                    )
-                    .await
-                    .with_context(|| {
-                        format!(
-                            "listing ips failed; reason: querying dns server {} on port {} failed",
-                            network::OPENDNS_SERVER_HOST,
-                            network::DNS_DEFAULT_PORT
-                        )
-                    })?;
-
-                    let local_ip = local_ip_address::local_ip().with_context(
-                        || "listing ips failed; reason: querying local ip address failed",
-                    )?;
-
-                    CommandResult::Ips(vec![
-                        network::Ip {
-                            category: network::IpCategory::Public,
-                            address: public_ip,
-                        },
-                        network::Ip {
-                            category: network::IpCategory::Local,
-                            address: local_ip,
-                        },
-                    ])
-                }
-            },
-            Commands::Hostname => CommandResult::Hostname(
-                system::hostname()
-                    .await
-                    .with_context(|| "looking up the system's hostname failed")?,
-            ),
-            Commands::Username => CommandResult::Username(
-                system::username()
-                    .await
-                    .with_context(|| "looking up the user's username failed")?,
-            ),
-            Commands::DeviceName => CommandResult::DeviceName(
-                system::device_name()
-                    .await
-                    .with_context(|| "looking up the systems' device name failed")?,
-            ),
-            Commands::Os => CommandResult::Os(
-                system::os()
-                    .await
-                    .with_context(|| "looking up the system's OS name failed")?,
-            ),
-            Commands::Architecture => CommandResult::Architecture(
-                system::architecture()
-                    .await
-                    .with_context(|| "looking up the CPU's architecture fialed")?,
-            ),
-            Commands::Interfaces => CommandResult::Interfaces(
-                network::interfaces()
-                    .await
-                    .with_context(|| "listing the system's network interfaces failed")?,
-            ),
-            Commands::Disks => CommandResult::Disks(
-                storage::list_disks()
-                    .await
-                    .with_context(|| "listing the disks failed")?,
-            ),
-            Commands::Cpu => CommandResult::Cpu(
-                system::cpus()
-                    .await
-                    .with_context(|| "looking up the system's CPU information failed")?,
-            ),
-            Commands::Ram => CommandResult::Ram(
-                system::ram()
-                    .await
-                    .with_context(|| "looking up the system's RAM information failed")?,
-            ),
-        };
-
-        match cli.format {
-            OutputFormat::Json => {
-                let json_repr = serde_json::to_string_pretty(&result)?;
-                println!("{}", json_repr);
-            }
-            OutputFormat::Text => {
-                println!("{}", result);
-            }
-        }
+        let result = execute_command(command).await?;
+        display_result(&result, cli.format)?;
     }
 
     Ok(())
 }
 
-/// CommandResult holds the result of a command.
+fn display_result(result: &CommandResult, format: OutputFormat) -> Result<()> {
+    match format {
+        OutputFormat::Json => {
+            let json_repr = serde_json::to_string_pretty(result)?;
+            println!("{json_repr}");
+        }
+        OutputFormat::Text => println!("{result}"),
+    }
+
+    Ok(())
+}
+
+/// `CommandResult` holds the result of a command.
 ///
 /// This is used to facilitate factorizing the command execution,
 /// and allow handling the serializing of the result into the desired output format
@@ -303,22 +182,22 @@ enum CommandResult {
 impl Display for CommandResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CommandResult::Ips(ips) => {
+            Self::Ips(ips) => {
                 let ips = ips.iter().map(ToString::to_string).collect::<Vec<String>>();
                 write!(f, "{}", ips.join("\n"))
             }
-            CommandResult::Dns(dns) => {
+            Self::Dns(dns) => {
                 write!(f, "{}", dns.join("\n"))
             }
-            CommandResult::Date(date) => date.fmt(f),
-            CommandResult::Time(time) => time.fmt(f),
-            CommandResult::Datetime(datetime) => datetime.fmt(f),
-            CommandResult::Hostname(hostname) => hostname.fmt(f),
-            CommandResult::Username(username) => username.fmt(f),
-            CommandResult::DeviceName(device_name) => device_name.fmt(f),
-            CommandResult::Os(os) => os.fmt(f),
-            CommandResult::Architecture(architecture) => architecture.fmt(f),
-            CommandResult::Interfaces(interfaces) => {
+            Self::Date(date) => date.fmt(f),
+            Self::Time(time) => time.fmt(f),
+            Self::Datetime(datetime) => datetime.fmt(f),
+            Self::Hostname(hostname) => hostname.fmt(f),
+            Self::Username(username) => username.fmt(f),
+            Self::DeviceName(device_name) => device_name.fmt(f),
+            Self::Os(os) => os.fmt(f),
+            Self::Architecture(architecture) => architecture.fmt(f),
+            Self::Interfaces(interfaces) => {
                 write!(
                     f,
                     "{}",
@@ -329,7 +208,7 @@ impl Display for CommandResult {
                         .join("\n")
                 )
             }
-            CommandResult::Disks(disks) => {
+            Self::Disks(disks) => {
                 write!(
                     f,
                     "{}",
@@ -340,8 +219,8 @@ impl Display for CommandResult {
                         .join("\n")
                 )
             }
-            CommandResult::Cpu(cpu) => cpu.fmt(f),
-            CommandResult::Ram(ram) => ram.fmt(f),
+            Self::Cpu(cpu) => cpu.fmt(f),
+            Self::Ram(ram) => ram.fmt(f),
         }
     }
 }
@@ -352,20 +231,20 @@ impl Serialize for CommandResult {
         S: Serializer,
     {
         match self {
-            CommandResult::Ips(ips) => ips.serialize(serializer),
-            CommandResult::Dns(dns) => dns.serialize(serializer),
-            CommandResult::Date(date) => date.serialize(serializer),
-            CommandResult::Time(time) => time.serialize(serializer),
-            CommandResult::Datetime(datetime) => datetime.serialize(serializer),
-            CommandResult::Hostname(hostname) => hostname.serialize(serializer),
-            CommandResult::Username(username) => username.serialize(serializer),
-            CommandResult::DeviceName(device_name) => device_name.serialize(serializer),
-            CommandResult::Os(os) => os.serialize(serializer),
-            CommandResult::Architecture(architecture) => architecture.serialize(serializer),
-            CommandResult::Interfaces(interfaces) => interfaces.serialize(serializer),
-            CommandResult::Disks(disks) => disks.serialize(serializer),
-            CommandResult::Cpu(cpu) => cpu.serialize(serializer),
-            CommandResult::Ram(ram) => ram.serialize(serializer),
+            Self::Ips(ips) => ips.serialize(serializer),
+            Self::Dns(dns) => dns.serialize(serializer),
+            Self::Date(date) => date.serialize(serializer),
+            Self::Time(time) => time.serialize(serializer),
+            Self::Datetime(datetime) => datetime.serialize(serializer),
+            Self::Hostname(hostname) => hostname.serialize(serializer),
+            Self::Username(username) => username.serialize(serializer),
+            Self::DeviceName(device_name) => device_name.serialize(serializer),
+            Self::Os(os) => os.serialize(serializer),
+            Self::Architecture(architecture) => architecture.serialize(serializer),
+            Self::Interfaces(interfaces) => interfaces.serialize(serializer),
+            Self::Disks(disks) => disks.serialize(serializer),
+            Self::Cpu(cpu) => cpu.serialize(serializer),
+            Self::Ram(ram) => ram.serialize(serializer),
         }
     }
 }
@@ -374,4 +253,199 @@ impl Serialize for CommandResult {
 enum OutputFormat {
     Json,
     Text,
+}
+
+async fn execute_command(command: &Commands) -> Result<CommandResult> {
+    match command {
+        Commands::Date => Ok(handle_date()),
+        Commands::Time => handle_time().await,
+        Commands::Datetime => handle_datetime().await,
+        Commands::Dns => handle_dns(),
+        Commands::Ips { only } => handle_ips(*only).await,
+        Commands::Hostname => handle_hostname().await,
+        Commands::Username => handle_username().await,
+        Commands::DeviceName => handle_device_name().await,
+        Commands::Os => handle_os_command().await,
+        Commands::Architecture => handle_architecture().await,
+        Commands::Interfaces => handle_interfaces().await,
+        Commands::Disks => handle_disks(),
+        Commands::Cpu => handle_cpu(),
+        Commands::Ram => Ok(handle_ram()),
+    }
+}
+
+async fn fetch_named_command<F, Fut>(
+    fetcher: F,
+    wrap: fn(output::Named) -> CommandResult,
+    context: &'static str,
+) -> Result<CommandResult>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = Result<output::Named>>,
+{
+    let value = fetcher().await.with_context(|| context)?;
+    Ok(wrap(value))
+}
+
+fn fetch_sync_command<T, F>(
+    fetcher: F,
+    wrap: fn(T) -> CommandResult,
+    context: &'static str,
+) -> Result<CommandResult>
+where
+    F: FnOnce() -> Result<T>,
+{
+    let value = fetcher().with_context(|| context)?;
+    Ok(wrap(value))
+}
+
+fn handle_date() -> CommandResult {
+    CommandResult::Date(datetime::date())
+}
+
+async fn handle_time() -> Result<CommandResult> {
+    let time = datetime::time()
+        .await
+        .with_context(|| "looking up the system's time failed")?;
+    Ok(CommandResult::Time(time))
+}
+
+async fn handle_datetime() -> Result<CommandResult> {
+    let datetime = datetime::datetime()
+        .await
+        .with_context(|| "looking up the system's datetime failed")?;
+    Ok(CommandResult::Datetime(datetime))
+}
+
+fn handle_dns() -> Result<CommandResult> {
+    fetch_sync_command(
+        network::list_dns_servers,
+        CommandResult::Dns,
+        "listing the system's dns servers failed",
+    )
+}
+
+async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> {
+    let open_dns_host = network::OPENDNS_SERVER_HOST;
+    let open_dns_port = network::DNS_DEFAULT_PORT;
+
+    match only {
+        Some(network::IpCategory::Public) => {
+            let public_ip = network::query_public_ip(open_dns_host, open_dns_port)
+                .await
+                .with_context(|| {
+                    format!(
+                        "looking up public ip failed; reason: querying dns server {open_dns_host} on port {open_dns_port} failed"
+                    )
+                })?;
+            Ok(CommandResult::Ips(vec![network::Ip {
+                category: network::IpCategory::Public,
+                address: public_ip,
+            }]))
+        }
+        Some(network::IpCategory::Local) => {
+            let local_ip = local_ip_address::local_ip().with_context(
+                || "looking up local ip failed; reason: querying local ip address failed",
+            )?;
+            Ok(CommandResult::Ips(vec![network::Ip {
+                category: network::IpCategory::Local,
+                address: local_ip,
+            }]))
+        }
+        Some(network::IpCategory::Any) | None => {
+            let public_ip = network::query_public_ip(open_dns_host, open_dns_port)
+                .await
+                .with_context(|| {
+                    format!(
+                        "listing ips failed; reason: querying dns server {open_dns_host} on port {open_dns_port} failed"
+                    )
+                })?;
+
+            let local_ip = local_ip_address::local_ip()
+                .with_context(|| "listing ips failed; reason: querying local ip address failed")?;
+
+            Ok(CommandResult::Ips(vec![
+                network::Ip {
+                    category: network::IpCategory::Public,
+                    address: public_ip,
+                },
+                network::Ip {
+                    category: network::IpCategory::Local,
+                    address: local_ip,
+                },
+            ]))
+        }
+    }
+}
+
+async fn handle_hostname() -> Result<CommandResult> {
+    fetch_named_command(
+        system::hostname,
+        CommandResult::Hostname,
+        "looking up the system's hostname failed",
+    )
+    .await
+}
+
+async fn handle_username() -> Result<CommandResult> {
+    fetch_named_command(
+        system::username,
+        CommandResult::Username,
+        "looking up the user's username failed",
+    )
+    .await
+}
+
+async fn handle_device_name() -> Result<CommandResult> {
+    fetch_named_command(
+        system::device_name,
+        CommandResult::DeviceName,
+        "looking up the systems' device name failed",
+    )
+    .await
+}
+
+async fn handle_os_command() -> Result<CommandResult> {
+    fetch_named_command(
+        system::os,
+        CommandResult::Os,
+        "looking up the system's OS name failed",
+    )
+    .await
+}
+
+async fn handle_architecture() -> Result<CommandResult> {
+    fetch_named_command(
+        system::architecture,
+        CommandResult::Architecture,
+        "looking up the CPU's architecture failed",
+    )
+    .await
+}
+
+async fn handle_interfaces() -> Result<CommandResult> {
+    let interfaces = network::interfaces()
+        .await
+        .with_context(|| "listing the system's network interfaces failed")?;
+    Ok(CommandResult::Interfaces(interfaces))
+}
+
+fn handle_disks() -> Result<CommandResult> {
+    fetch_sync_command(
+        storage::list_disks,
+        CommandResult::Disks,
+        "listing the disks failed",
+    )
+}
+
+fn handle_cpu() -> Result<CommandResult> {
+    fetch_sync_command(
+        system::cpus,
+        CommandResult::Cpu,
+        "looking up the system's CPU information failed",
+    )
+}
+
+fn handle_ram() -> CommandResult {
+    CommandResult::Ram(system::ram())
 }
