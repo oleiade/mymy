@@ -76,7 +76,7 @@ impl Display for Cpu {
             "{}, {} cores running at {} GHz",
             self.brand.bold(),
             format!("{}", self.core_count).cyan(),
-            format!("{}", self.frequency).green()
+            format!("{}", self.frequency / 1000).green()
         )
     }
 }
