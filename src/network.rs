@@ -3,6 +3,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use anyhow::{Context, Result};
 use clap::ValueEnum;
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
 use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
@@ -108,13 +109,12 @@ pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
 /// ```
 pub fn list_dns_servers() -> Result<Vec<String>> {
     let (conf, _) = system_conf::read_system_conf()?;
-    let mut nameservers = conf
+    let nameservers = conf
         .name_servers()
         .iter()
         .map(|ns| ns.socket_addr.ip().to_string())
+        .unique()
         .collect::<Vec<_>>();
-
-    nameservers.dedup();
 
     Ok(nameservers)
 }
