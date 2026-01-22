@@ -400,7 +400,7 @@ async fn handle_device_name() -> Result<CommandResult> {
     fetch_named_command(
         system::device_name,
         CommandResult::DeviceName,
-        "looking up the systems' device name failed",
+        "looking up the system's device name failed",
     )
     .await
 }
