@@ -6,7 +6,7 @@ use colored::Colorize;
 use serde::Serialize;
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
-use crate::format::human_readable_size;
+use crate::format::{human_readable_size, Percentage};
 use crate::output::{Named};
 
 /// returns the hostname of the system as a Named enum
@@ -111,16 +111,11 @@ impl Display for Ram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let total = human_readable_size(self.total);
         let used = human_readable_size(self.used);
-        let percentage_tenths = if self.total == 0 {
-            0_u64
-        } else {
-            u64::try_from(u128::from(self.used) * 1000 / u128::from(self.total)).unwrap_or(u64::MAX)
-        };
-        let integer = percentage_tenths / 10;
-        let decimal = percentage_tenths % 10;
-        let percentage_display = format!("{integer}.{decimal}");
 
-        let (used_colored, used_percentage_colored) = match percentage_tenths {
+        let percentage = Percentage::from_ratio(self.used, self.total);
+        let percentage_display = format!("{percentage}");
+
+        let (used_colored, used_percentage_colored) = match percentage.tenths {
             p if p > 900 => (used.red(), percentage_display.as_str().red()),
             p if p > 700 => (used.yellow(), percentage_display.as_str().yellow()),
             _ => (used.green(), percentage_display.as_str().green()),

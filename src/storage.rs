@@ -7,7 +7,7 @@ use itertools::Itertools;
 use serde::Serialize;
 use sysinfo::Disks;
 
-use crate::format::human_readable_size;
+use crate::format::{human_readable_size, Percentage};
 
 /// List all disks and their information
 ///
@@ -66,19 +66,13 @@ impl Display for DiskInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let free_space = human_readable_size(self.free_space);
         let total_space = human_readable_size(self.total_space);
-        let percentage_tenths = if self.total_space == 0 {
-            0_u64
-        } else {
-            u64::try_from(u128::from(self.free_space) * 1000 / u128::from(self.total_space))
-                .unwrap_or(u64::MAX)
-        };
-        let integer = percentage_tenths / 10;
-        let decimal = percentage_tenths % 10;
-        let percentage_display = format!("{integer}.{decimal}");
 
-        let (colored_free_space, color_free_percentage) = match percentage_tenths {
-            _ if percentage_tenths < 100 => (free_space.red(), percentage_display.as_str().red()),
-            _ if percentage_tenths < 200 => {
+        let percentage = Percentage::from_ratio(self.free_space, self.total_space);
+        let percentage_display = format!("{percentage}");
+
+        let (colored_free_space, color_free_percentage) = match percentage.tenths {
+            _ if percentage.tenths < 100 => (free_space.red(), percentage_display.as_str().red()),
+            _ if percentage.tenths < 200 => {
                 (free_space.yellow(), percentage_display.as_str().yellow())
             }
             _ => (free_space.green(), percentage_display.as_str().green()),

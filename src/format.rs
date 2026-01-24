@@ -1,3 +1,6 @@
+use std::fmt;
+use fmt::Display;
+
 /// Convert bytes to human readable size
 pub fn human_readable_size(bytes: u64) -> String {
     const KILO: u64 = 1024;
@@ -20,5 +23,28 @@ pub fn human_readable_size(bytes: u64) -> String {
         _ if bytes < TERA => format_scaled(bytes, GIGA, "GiB"),
         _ if bytes < PETA => format_scaled(bytes, TERA, "TiB"),
         _ => format_scaled(bytes, PETA, "PiB"),
+    }
+}
+
+pub struct Percentage {
+    pub tenths: u64,
+}
+
+impl Percentage {
+    pub fn from_ratio(numerator: u64, denominator: u64) -> Self {
+        let tenths = if denominator == 0 {
+            0
+        } else {
+            u64::try_from(u128::from(numerator) * 1000 / u128::from(denominator))
+                .unwrap_or(u64::MAX)
+        };
+
+        Self { tenths }
+    }
+}
+
+impl Display for Percentage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}", self.tenths / 10, self.tenths % 10)
     }
 }
