@@ -32,7 +32,10 @@ pub fn list_disks() -> Result<Vec<DiskInfo>> {
         .iter()
         .unique_by(|disk| disk.name())
         .map(|disk| {
-            let name = disk.name().to_str().ok_or("unknown").map_err(Error::msg)?;
+            let name = disk
+                .name()
+                .to_str()
+                .ok_or_else(|| Error::msg("invalid disk name"))?;
 
             Ok(DiskInfo {
                 name: name.to_string(),
