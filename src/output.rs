@@ -20,14 +20,6 @@ pub enum Named {
     Architecture(String),
 }
 
-pub enum NamedKind {
-    Hostname,
-    Username,
-    DeviceName,
-    Os,
-    Architecture,
-}
-
 impl Named {
     fn value(&self) -> &str {
         match self {
@@ -60,22 +52,5 @@ impl Serialize for Named {
             Self::Architecture(value) => map.serialize_entry("architecture", value)?,
         }
         map.end()
-    }
-}
-
-/// `create_named` is a function that creates a `Named` enum from a function
-/// that returns a String.
-pub async fn create_named<F, Fut>(func: F, data_type: NamedKind) -> Result<Named>
-where
-    F: FnOnce() -> Fut,
-    Fut: std::future::Future<Output = String>,
-{
-    let value = func().await;
-    match data_type {
-        NamedKind::Hostname => Ok(Named::Hostname(value)),
-        NamedKind::Username => Ok(Named::Username(value)),
-        NamedKind::DeviceName => Ok(Named::DeviceName(value)),
-        NamedKind::Os => Ok(Named::Os(value)),
-        NamedKind::Architecture => Ok(Named::Architecture(value)),
     }
 }

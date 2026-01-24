@@ -7,36 +7,32 @@ use serde::Serialize;
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 use crate::format::human_readable_size;
-use crate::output::{Named, NamedKind, create_named};
+use crate::output::{Named};
 
 /// returns the hostname of the system as a Named enum
-pub async fn hostname() -> Result<Named> {
+pub fn hostname() -> Result<Named> {
     let hostname = whoami::fallible::hostname()?;
-    create_named(|| async { hostname }, NamedKind::Hostname).await
+    Ok(Named::Hostname(hostname))
 }
 
 /// returns the username of the system as a Named enum
-pub async fn username() -> Result<Named> {
-    create_named(|| async { whoami::username() }, NamedKind::Username).await
+pub fn username() -> Named {
+    Named::Username(whoami::username())
 }
 
 /// returns the device name of the system as a Named enum
-pub async fn device_name() -> Result<Named> {
-    create_named(|| async { whoami::devicename() }, NamedKind::DeviceName).await
+pub fn device_name() -> Named {
+    Named::DeviceName(whoami::devicename())
 }
 
 /// returns the operating system of the system as a Named enum
-pub async fn os() -> Result<Named> {
-    create_named(|| async { whoami::distro() }, NamedKind::Os).await
+pub fn os() -> Named {
+    Named::Os(whoami::distro())
 }
 
 /// returns the architecture of the system as a Named enum
-pub async fn architecture() -> Result<Named> {
-    create_named(
-        || async { whoami::arch().to_string() },
-        NamedKind::Architecture,
-    )
-    .await
+pub fn architecture() -> Named {
+    Named::Architecture(whoami::arch().to_string())
 }
 
 /// returns the CPU of the system as a Cpu struct

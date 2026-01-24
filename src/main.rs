@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::future::Future;
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
@@ -262,29 +261,16 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
         Commands::Datetime => handle_datetime().await,
         Commands::Dns => handle_dns(),
         Commands::Ips { only } => handle_ips(*only).await,
-        Commands::Hostname => handle_hostname().await,
-        Commands::Username => handle_username().await,
-        Commands::DeviceName => handle_device_name().await,
-        Commands::Os => handle_os_command().await,
-        Commands::Architecture => handle_architecture().await,
+        Commands::Hostname => handle_hostname(),
+        Commands::Username => Ok(handle_username()),
+        Commands::DeviceName => Ok(handle_device_name()),
+        Commands::Os => Ok(handle_os_command()),
+        Commands::Architecture => Ok(handle_architecture()),
         Commands::Interfaces => handle_interfaces().await,
         Commands::Disks => handle_disks(),
         Commands::Cpu => handle_cpu(),
         Commands::Ram => Ok(handle_ram()),
     }
-}
-
-async fn fetch_named_command<F, Fut>(
-    fetcher: F,
-    wrap: fn(output::Named) -> CommandResult,
-    context: &'static str,
-) -> Result<CommandResult>
-where
-    F: FnOnce() -> Fut,
-    Fut: Future<Output = Result<output::Named>>,
-{
-    let value = fetcher().await.with_context(|| context)?;
-    Ok(wrap(value))
 }
 
 fn fetch_sync_command<T, F>(
@@ -378,49 +364,25 @@ async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> 
     }
 }
 
-async fn handle_hostname() -> Result<CommandResult> {
-    fetch_named_command(
-        system::hostname,
-        CommandResult::Hostname,
-        "looking up the system's hostname failed",
-    )
-    .await
+fn handle_hostname() -> Result<CommandResult> {
+    system::hostname()
+        .map(CommandResult::Hostname)
 }
 
-async fn handle_username() -> Result<CommandResult> {
-    fetch_named_command(
-        system::username,
-        CommandResult::Username,
-        "looking up the user's username failed",
-    )
-    .await
+fn handle_username() -> CommandResult {
+    CommandResult::Username(system::username())
 }
 
-async fn handle_device_name() -> Result<CommandResult> {
-    fetch_named_command(
-        system::device_name,
-        CommandResult::DeviceName,
-        "looking up the system's device name failed",
-    )
-    .await
+fn handle_device_name() -> CommandResult {
+    CommandResult::DeviceName(system::device_name())
 }
 
-async fn handle_os_command() -> Result<CommandResult> {
-    fetch_named_command(
-        system::os,
-        CommandResult::Os,
-        "looking up the system's OS name failed",
-    )
-    .await
+fn handle_os_command() -> CommandResult {
+    CommandResult::Os(system::os())
 }
 
-async fn handle_architecture() -> Result<CommandResult> {
-    fetch_named_command(
-        system::architecture,
-        CommandResult::Architecture,
-        "looking up the CPU's architecture failed",
-    )
-    .await
+fn handle_architecture() -> CommandResult {
+    CommandResult::Architecture(system::architecture())
 }
 
 async fn handle_interfaces() -> Result<CommandResult> {
