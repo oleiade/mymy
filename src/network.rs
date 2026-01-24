@@ -160,16 +160,14 @@ impl Display for IpCategory {
 /// println!("interfaces: {:?}", interfaces);
 /// ```
 pub async fn interfaces() -> Result<Vec<Interface>> {
-    spawn_blocking(get_if_addrs::get_if_addrs)
-        .await??
+    let addresses = spawn_blocking(get_if_addrs::get_if_addrs).await??;
+    Ok(addresses
         .into_iter()
-        .try_fold(Vec::new(), |mut acc, i| {
-            acc.push(Interface {
-                name: i.name.clone(),
-                ip: i.ip().to_string(),
-            });
-            Ok(acc)
+        .map(|i| Interface{
+            name: i.name.clone(),
+            ip: i.ip().to_string(),
         })
+    .collect())
 }
 
 /// A network interface.
