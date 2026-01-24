@@ -3,7 +3,7 @@ use std::fmt::Display;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
 use human_panic::setup_panic;
-use serde::{Serialize, Serializer};
+use serde::{Serialize};
 
 mod country;
 mod datetime;
