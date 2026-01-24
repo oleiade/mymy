@@ -161,6 +161,8 @@ fn display_result(result: &CommandResult, format: OutputFormat) -> Result<()> {
 /// This is used to facilitate factorizing the command execution,
 /// and allow handling the serializing of the result into the desired output format
 /// in a single place.
+#[derive(Serialize)]
+#[serde(untagged)]
 enum CommandResult {
     Ips(Vec<network::Ip>),
     Dns(Vec<String>),
@@ -220,30 +222,6 @@ impl Display for CommandResult {
             }
             Self::Cpu(cpu) => cpu.fmt(f),
             Self::Ram(ram) => ram.fmt(f),
-        }
-    }
-}
-
-impl Serialize for CommandResult {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            Self::Ips(ips) => ips.serialize(serializer),
-            Self::Dns(dns) => dns.serialize(serializer),
-            Self::Date(date) => date.serialize(serializer),
-            Self::Time(time) => time.serialize(serializer),
-            Self::Datetime(datetime) => datetime.serialize(serializer),
-            Self::Hostname(hostname) => hostname.serialize(serializer),
-            Self::Username(username) => username.serialize(serializer),
-            Self::DeviceName(device_name) => device_name.serialize(serializer),
-            Self::Os(os) => os.serialize(serializer),
-            Self::Architecture(architecture) => architecture.serialize(serializer),
-            Self::Interfaces(interfaces) => interfaces.serialize(serializer),
-            Self::Disks(disks) => disks.serialize(serializer),
-            Self::Cpu(cpu) => cpu.serialize(serializer),
-            Self::Ram(ram) => ram.serialize(serializer),
         }
     }
 }
