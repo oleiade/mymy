@@ -18,6 +18,7 @@ mod system;
 #[command(
     long_about = "Easily access important details about your device, such as IP addresses, DNS servers, date, time, and more."
 )]
+#[command(arg_required_else_help = true)]
 pub struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
