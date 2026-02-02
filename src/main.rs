@@ -5,7 +5,6 @@ use clap::{Parser, Subcommand, ValueEnum};
 use human_panic::setup_panic;
 use serde::{Serialize};
 
-mod country;
 mod datetime;
 mod format;
 mod network;
