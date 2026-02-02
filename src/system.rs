@@ -10,28 +10,31 @@ use crate::output::{Named};
 
 /// returns the hostname of the system as a Named enum
 pub fn hostname() -> Result<Named> {
-    let hostname = whoami::fallible::hostname()?;
+    let hostname = whoami::hostname()?;
     Ok(Named::Hostname(hostname))
 }
 
 /// returns the username of the system as a Named enum
-pub fn username() -> Named {
-    Named::Username(whoami::username())
+pub fn username() -> Result<Named> {
+    let username = whoami::username()?;
+    Ok(Named::Username(username))
 }
 
 /// returns the device name of the system as a Named enum
-pub fn device_name() -> Named {
-    Named::DeviceName(whoami::devicename())
+pub fn device_name() -> Result<Named> {
+    let device_name = whoami::devicename()?;
+    Ok(Named::DeviceName(device_name))
 }
 
 /// returns the operating system of the system as a Named enum
-pub fn os() -> Named {
-    Named::Os(whoami::distro())
+pub fn os() -> Result<Named> {
+    let distro = whoami::distro()?;
+    Ok(Named::Os(distro))
 }
 
 /// returns the architecture of the system as a Named enum
 pub fn architecture() -> Named {
-    Named::Architecture(whoami::arch().to_string())
+    Named::Architecture(whoami::cpu_arch().to_string())
 }
 
 /// returns the CPU of the system as a Cpu struct

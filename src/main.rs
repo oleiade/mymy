@@ -240,9 +240,9 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
         Commands::Dns => handle_dns(),
         Commands::Ips { only } => handle_ips(*only).await,
         Commands::Hostname => handle_hostname(),
-        Commands::Username => Ok(handle_username()),
-        Commands::DeviceName => Ok(handle_device_name()),
-        Commands::Os => Ok(handle_os_command()),
+        Commands::Username => handle_username(),
+        Commands::DeviceName => handle_device_name(),
+        Commands::Os => handle_os_command(),
         Commands::Architecture => Ok(handle_architecture()),
         Commands::Interfaces => handle_interfaces().await,
         Commands::Disks => handle_disks(),
@@ -347,16 +347,16 @@ fn handle_hostname() -> Result<CommandResult> {
         .map(CommandResult::Hostname)
 }
 
-fn handle_username() -> CommandResult {
-    CommandResult::Username(system::username())
+fn handle_username() -> Result<CommandResult> {
+    system::username().map(CommandResult::Username)
 }
 
-fn handle_device_name() -> CommandResult {
-    CommandResult::DeviceName(system::device_name())
+fn handle_device_name() -> Result<CommandResult> {
+    system::device_name().map(CommandResult::DeviceName)
 }
 
-fn handle_os_command() -> CommandResult {
-    CommandResult::Os(system::os())
+fn handle_os_command() -> Result<CommandResult> {
+    system::os().map(CommandResult::Os)
 }
 
 fn handle_architecture() -> CommandResult {
