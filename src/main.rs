@@ -8,7 +8,6 @@ use serde::{Serialize};
 mod datetime;
 mod format;
 mod network;
-mod output;
 mod storage;
 mod system;
 
@@ -169,11 +168,11 @@ enum CommandResult {
     Date(datetime::Date),
     Time(datetime::Time),
     Datetime(datetime::Datetime),
-    Hostname(output::Named),
-    Username(output::Named),
-    DeviceName(output::Named),
-    Os(output::Named),
-    Architecture(output::Named),
+    Hostname(system::Hostname),
+    Username(system::Username),
+    DeviceName(system::DeviceName),
+    Os(system::OperatingSystem),
+    Architecture(system::Architecture),
     Interfaces(Vec<network::Interface>),
     Disks(Vec<storage::DiskInfo>),
     Cpu(system::Cpu),
