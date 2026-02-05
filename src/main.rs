@@ -255,9 +255,7 @@ fn handle_date() -> CommandResult {
 }
 
 async fn handle_time() -> Result<CommandResult> {
-    let time = datetime::time()
-        .await
-        .with_context(|| "looking up the system's time failed")?;
+    let time = datetime::time().await;
     Ok(CommandResult::Time(time))
 }
 

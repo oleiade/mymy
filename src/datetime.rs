@@ -45,16 +45,18 @@ impl From<DateTime<Local>> for Date {
 }
 
 /// Returns the system time.
-pub async fn time() -> Result<Time> {
-    let sntp_client = AsyncSntpClient::new();
-    let sntp_time = sntp_client.synchronize("pool.ntp.org").await?;
-    let now = sntp_time.datetime().into_chrono_datetime()?;
-    let now_with_tz = now.with_timezone(&Local);
+pub async fn time() -> Time {
+    let now = Local::now();
+    let mut t = Time::from(now);
 
-    let mut t = Time::from(now_with_tz);
-    t.offset = sntp_time.clock_offset().as_secs_f64();
+    match AsyncSntpClient::new().synchronize("pool.ntp.org").await {
+        Ok(sntp_time) => {
+            t.offset = Some(sntp_time.clock_offset().as_secs_f64());
+        },
+        Err(e) => eprintln!("warning: NTP sync failed: {e}")
+    }
 
-    Ok(t)
+    t
 }
 
 #[derive(Serialize)]
@@ -63,7 +65,8 @@ pub struct Time {
     minute: u32,
     second: u32,
     timezone: String,
-    offset: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    offset: Option<f64>,
 }
 
 impl Display for Time {
@@ -71,15 +74,13 @@ impl Display for Time {
         let hour = format!("{:02}", self.hour).bold();
         let minute = format!("{:02}", self.minute).bold();
         let second = format!("{:02}", self.second);
-        write!(f, "{hour}")?;
-        write!(f, ":{minute}")?;
-        write!(f, ":{second}")?;
-        write!(f, " UTC {}", self.timezone.bright_cyan())?;
-        write!(
-            f,
-            "\n±{} seconds",
-            format!("{:.4}", self.offset).bright_magenta()
-        )
+        write!(f, "{hour}:{minute}:{second} {}", self.timezone.bright_cyan())?;
+
+        if let Some(offset) = self.offset {
+            write!(f, "\n±{} seconds", format!("{offset:.4}").bright_magenta())?;
+        }
+
+        Ok(())
     }
 }
 
@@ -90,7 +91,7 @@ impl From<DateTime<Local>> for Time {
             minute: dt.minute(),
             second: dt.second(),
             timezone: dt.format("%Z").to_string(),
-            offset: 0.0,
+            offset: None,
         }
     }
 }
@@ -98,7 +99,7 @@ impl From<DateTime<Local>> for Time {
 /// Returns the system date and time.
 pub async fn datetime() -> Result<Datetime> {
     let date = date();
-    let time = time().await?;
+    let time = time().await;
 
     Ok(Datetime { date, time })
 }
