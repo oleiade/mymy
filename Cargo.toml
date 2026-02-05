@@ -47,7 +47,7 @@ default-features = false
 [dependencies.tokio]
 version = "1.45.0"
 default-features = false
-features = ["macros"]
+features = ["macros", "rt-multi-thread"]
 
 [dependencies.hickory-resolver]
 version = "0.25.2"
