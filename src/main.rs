@@ -250,18 +250,6 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
     }
 }
 
-fn fetch_sync_command<T, F>(
-    fetcher: F,
-    wrap: fn(T) -> CommandResult,
-    context: &'static str,
-) -> Result<CommandResult>
-where
-    F: FnOnce() -> Result<T>,
-{
-    let value = fetcher().with_context(|| context)?;
-    Ok(wrap(value))
-}
-
 fn handle_date() -> CommandResult {
     CommandResult::Date(datetime::date())
 }
@@ -281,11 +269,9 @@ async fn handle_datetime() -> Result<CommandResult> {
 }
 
 fn handle_dns() -> Result<CommandResult> {
-    fetch_sync_command(
-        network::list_dns_servers,
-        CommandResult::Dns,
-        "listing the system's dns servers failed",
-    )
+    let servers = network::list_dns_servers()
+        .context("listing the system's dns servers failed")?;
+    Ok(CommandResult::Dns(servers))
 }
 
 async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> {
@@ -370,19 +356,15 @@ async fn handle_interfaces() -> Result<CommandResult> {
 }
 
 fn handle_disks() -> Result<CommandResult> {
-    fetch_sync_command(
-        storage::list_disks,
-        CommandResult::Disks,
-        "listing the disks failed",
-    )
+    let disks = storage::list_disks()
+        .context("listing the disks failed")?;
+    Ok(CommandResult::Disks(disks))
 }
 
 fn handle_cpu() -> Result<CommandResult> {
-    fetch_sync_command(
-        system::cpus,
-        CommandResult::Cpu,
-        "looking up the system's CPU information failed",
-    )
+    let cpus = system::cpus()
+        .context("listing the system's cpus failed")?;
+    Ok(CommandResult::Cpu(cpus))
 }
 
 fn handle_ram() -> CommandResult {
