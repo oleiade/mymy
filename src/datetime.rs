@@ -77,7 +77,13 @@ impl Display for Time {
         write!(f, "{hour}:{minute}:{second} {}", self.timezone.bright_cyan())?;
 
         if let Some(offset) = self.offset {
-            write!(f, "\n±{} seconds", format!("{offset:.4}").bright_magenta())?;
+            let sign = if offset >= 0.0 { '+' } else { '-' };
+            write!(
+                f,
+                "\n{}{} seconds",
+                sign,
+                format!("{:.4}", offset.abs()).bright_magenta()
+            )?;
         }
 
         Ok(())

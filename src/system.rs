@@ -103,14 +103,16 @@ pub struct Cpu {
     pub frequency: u64,
 }
 
+#[allow(clippy::cast_precision_loss)]
 impl Display for Cpu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let ghz = self.frequency as f64 / 1000.0;
         write!(
             f,
             "{}, {} cores running at {} GHz",
             self.brand.bold(),
             format!("{}", self.core_count).cyan(),
-            format!("{}", self.frequency / 1000).green()
+            format!("{ghz:.1}").green()   // "2.4 GHz"
         )
     }
 }
