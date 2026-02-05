@@ -302,27 +302,35 @@ async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> 
             }]))
         }
         Some(network::IpCategory::Any) | None => {
-            let public_ip = network::query_public_ip(open_dns_host, open_dns_port)
-                .await
-                .with_context(|| {
-                    format!(
-                        "listing ips failed; reason: querying dns server {open_dns_host} on port {open_dns_port} failed"
-                    )
-                })?;
+            let mut ips = Vec::new();
 
-            let local_ip = local_ip_address::local_ip()
-                .with_context(|| "listing ips failed; reason: querying local ip address failed")?;
+            // Try discovering public IP
+            match network::query_public_ip(open_dns_host, open_dns_port).await {
+                Ok(public_ip) => ips.push(
+                    network::Ip{
+                        category: network::IpCategory::Public,
+                        address: public_ip,
+                    }
+                ),
+                Err(e) => eprintln!("warning: could not determine public IP: {e}")
+            }
 
-            Ok(CommandResult::Ips(vec![
-                network::Ip {
-                    category: network::IpCategory::Public,
-                    address: public_ip,
-                },
-                network::Ip {
-                    category: network::IpCategory::Local,
-                    address: local_ip,
-                },
-            ]))
+            // And try discovering local IP
+            match local_ip_address::local_ip() {
+                Ok(local_ip) => ips.push(
+                    network::Ip {
+                        category: network::IpCategory::Local,
+                        address: local_ip,
+                    }
+                ),
+                Err(e) => eprintln!("warning: could not determine local IP: {e}")
+            }
+
+            if ips.is_empty() {
+                anyhow::bail!("could not determine any IP addresses");
+            }
+
+            Ok(CommandResult::Ips(ips))
         }
     }
 }
