@@ -243,7 +243,7 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
         Commands::DeviceName => handle_device_name(),
         Commands::Os => handle_os_command(),
         Commands::Architecture => Ok(handle_architecture()),
-        Commands::Interfaces => handle_interfaces().await,
+        Commands::Interfaces => handle_interfaces(),
         Commands::Disks => handle_disks(),
         Commands::Cpu => handle_cpu(),
         Commands::Ram => Ok(handle_ram()),
@@ -354,9 +354,8 @@ fn handle_architecture() -> CommandResult {
     CommandResult::Architecture(system::architecture())
 }
 
-async fn handle_interfaces() -> Result<CommandResult> {
+fn handle_interfaces() -> Result<CommandResult> {
     let interfaces = network::interfaces()
-        .await
         .with_context(|| "listing the system's network interfaces failed")?;
     Ok(CommandResult::Interfaces(interfaces))
 }

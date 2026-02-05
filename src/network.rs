@@ -1,11 +1,11 @@
 use std::fmt::{Display, Formatter};
 use std::net::{IpAddr, SocketAddr};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use clap::ValueEnum;
 use itertools::Itertools;
+use local_ip_address::list_afinet_netifas;
 use serde::{Deserialize, Serialize};
-use tokio::task::spawn_blocking;
 use hickory_proto::xfer::Protocol;
 use hickory_resolver::config::{NameServerConfig, ResolverConfig, ResolverOpts};
 use hickory_resolver::name_server::TokioConnectionProvider;
@@ -163,15 +163,16 @@ impl Display for IpCategory {
 /// let interfaces = ip::list_interfaces().unwrap();
 /// println!("interfaces: {:?}", interfaces);
 /// ```
-pub async fn interfaces() -> Result<Vec<Interface>> {
-    let addresses = spawn_blocking(get_if_addrs::get_if_addrs).await??;
-    Ok(addresses
+pub fn interfaces() -> Result<Vec<Interface>> {
+    let netifs = list_afinet_netifas().map_err(|e| anyhow!(e))?;
+
+    Ok(netifs
         .into_iter()
-        .map(|i| Interface{
-            name: i.name.clone(),
-            ip: i.ip().to_string(),
+        .map(|(name, ip)| Interface {
+            name,
+            ip: ip.to_string(),
         })
-    .collect())
+        .collect())
 }
 
 /// A network interface.
