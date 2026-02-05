@@ -14,7 +14,8 @@ license-file = "LICENSE"
 [profile.release]
 debug = 1
 incremental = true
-lto = "off"
+lto = "thin"
+strip = true
 
 [[bin]]
 name = "my"
