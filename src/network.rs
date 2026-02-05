@@ -1,13 +1,15 @@
 use std::fmt::{Display, Formatter};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr, SocketAddr};
 
 use anyhow::{Context, Result};
 use clap::ValueEnum;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tokio::task::spawn_blocking;
-use trust_dns_resolver::config::{NameServerConfig, Protocol, ResolverConfig, ResolverOpts};
-use trust_dns_resolver::{TokioAsyncResolver, system_conf};
+use hickory_proto::xfer::Protocol;
+use hickory_resolver::config::{NameServerConfig, ResolverConfig, ResolverOpts};
+use hickory_resolver::name_server::TokioConnectionProvider;
+use hickory_resolver::{system_conf, Resolver};
 
 /// A categorized IP address.
 #[derive(Serialize, Deserialize, Debug)]
@@ -61,17 +63,19 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
     resolver_opts.timeout = std::time::Duration::from_secs(5);
 
     // Create the resolver
-    let resolver = TokioAsyncResolver::tokio(resolver_config, resolver_opts);
+    let resolver = Resolver::builder_with_config(resolver_config, TokioConnectionProvider::default())
+        .with_options(resolver_opts)
+        .build();
 
     // Query the public IP address from the OpenDNS server
     let ipv4_response = resolver.ipv4_lookup("myip.opendns.com").await?;
 
-    let ipv4: &Ipv4Addr = ipv4_response
+    let ipv4 = ipv4_response
         .iter()
         .next()
         .context("public IP lookup returned no IPv4 records")?;
 
-    Ok(IpAddr::V4(*ipv4))
+    Ok(IpAddr::V4(**ipv4))
 }
 
 /// The default DNS server port.

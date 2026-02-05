@@ -24,6 +24,7 @@ path = "src/main.rs"
 anyhow = "1.0.98"
 colored = "3.0.0"
 get_if_addrs = "0.5.3"
+hickory-proto = "0.25"
 human-panic = "2.0.2"
 itertools = "0.14.0"
 local-ip-address = "0.6.5"
@@ -49,10 +50,10 @@ version = "1.45.0"
 default-features = false
 features = ["macros"]
 
-[dependencies.trust-dns-resolver]
-version = "0.23.0"
-features = ["tokio-runtime", "system-config"]
-default-features = false
+[dependencies.hickory-resolver]
+version = "0.25.2"
+#features = ["tokio-runtime", "system-config"]
+#default-features = false
 
 [dependencies.whoami]
 version = "2.0.0"
