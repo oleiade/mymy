@@ -156,13 +156,6 @@ impl Display for IpCategory {
 /// # Errors
 ///
 /// If the system configuration cannot be read.
-///
-/// # Examples
-///
-/// ```
-/// let interfaces = ip::list_interfaces().unwrap();
-/// println!("interfaces: {:?}", interfaces);
-/// ```
 pub fn interfaces() -> Result<Vec<Interface>> {
     let netifs = list_afinet_netifas().map_err(|e| anyhow!(e))?;
 

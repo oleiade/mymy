@@ -17,7 +17,7 @@ impl Display for Hostname {
     }
 }
 
-/// returns the hostname of the system as a Named enum
+/// returns the hostname of the system
 pub fn hostname() -> Result<Hostname> {
     let hostname = whoami::hostname()?;
     Ok(Hostname{ hostname })
@@ -51,7 +51,7 @@ impl Display for DeviceName {
     }
 }
 
-/// returns the device name of the system as a Named enum
+/// returns the device name of the system
 pub fn device_name() -> Result<DeviceName> {
     let device_name = whoami::devicename()?;
     Ok(DeviceName{ device_name })
@@ -68,7 +68,7 @@ impl Display for OperatingSystem {
     }
 }
 
-/// returns the operating system of the system as a Named enum
+/// returns the operating system the system is running
 pub fn os() -> Result<OperatingSystem> {
     let name = whoami::distro()?;
     Ok(OperatingSystem{ name })
@@ -85,7 +85,7 @@ impl Display for Architecture {
     }
 }
 
-/// returns the architecture of the system as a Named enum
+/// returns the architecture of the system
 pub fn architecture() -> Architecture {
     Architecture{ architecture: whoami::cpu_arch().to_string() }
 }
