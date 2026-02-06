@@ -12,8 +12,6 @@ categories = ["command-line-utilities"]
 license-file = "LICENSE"
 
 [profile.release]
-debug = 1
-incremental = true
 lto = "thin"
 strip = true
 
