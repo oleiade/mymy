@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use anyhow::Result;
 use chrono::{DateTime, Datelike, Local, Timelike};
 use colored::Colorize;
 use rsntp::AsyncSntpClient;
@@ -103,11 +102,11 @@ impl From<DateTime<Local>> for Time {
 }
 
 /// Returns the system date and time.
-pub async fn datetime() -> Result<Datetime> {
+pub async fn datetime() -> Datetime {
     let date = date();
     let time = time().await;
 
-    Ok(Datetime { date, time })
+    Datetime { date, time }
 }
 
 #[derive(Serialize)]

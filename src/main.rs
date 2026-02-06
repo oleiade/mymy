@@ -234,8 +234,8 @@ enum OutputFormat {
 async fn execute_command(command: &Commands) -> Result<CommandResult> {
     match command {
         Commands::Date => Ok(handle_date()),
-        Commands::Time => handle_time().await,
-        Commands::Datetime => handle_datetime().await,
+        Commands::Time => Ok(handle_time().await),
+        Commands::Datetime => Ok(handle_datetime().await),
         Commands::Dns => handle_dns(),
         Commands::Ips { only } => handle_ips(*only).await,
         Commands::Hostname => handle_hostname(),
@@ -254,16 +254,12 @@ fn handle_date() -> CommandResult {
     CommandResult::Date(datetime::date())
 }
 
-async fn handle_time() -> Result<CommandResult> {
-    let time = datetime::time().await;
-    Ok(CommandResult::Time(time))
+async fn handle_time() -> CommandResult {
+    CommandResult::Time(datetime::time().await)
 }
 
-async fn handle_datetime() -> Result<CommandResult> {
-    let datetime = datetime::datetime()
-        .await
-        .with_context(|| "looking up the system's datetime failed")?;
-    Ok(CommandResult::Datetime(datetime))
+async fn handle_datetime() -> CommandResult {
+    CommandResult::Datetime(datetime::datetime().await)
 }
 
 fn handle_dns() -> Result<CommandResult> {
