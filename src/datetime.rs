@@ -7,10 +7,7 @@ use serde::Serialize;
 
 /// Returns the system date.
 pub fn date() -> Date {
-    let dt = Local::now();
-    let now_with_tz = dt.with_timezone(&Local);
-
-    now_with_tz.into()
+    Local::now().into()
 }
 
 #[derive(Serialize)]
