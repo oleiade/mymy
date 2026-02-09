@@ -88,16 +88,32 @@ pub const DNS_DEFAULT_PORT: u16 = 53;
 /// This constant is used as a default to query the public IP address
 pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
 
+/// A DNS server with its address and ordinal position.
+#[derive(Serialize)]
+pub struct DnsServer {
+    /// The IP address of the DNS server.
+    pub address: String,
+
+    /// The 1-indexed ordinal position of the DNS server.
+    pub order: usize,
+}
+
+impl Display for DnsServer {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "server {}\t{}", self.order, self.address)
+    }
+}
+
 /// Lists the DNS servers from the system configuration.
 ///
-/// The DNS servers are returned as a list of IP addresses.
+/// The DNS servers are returned as a list of `DnsServer` structs.
 /// The DNS servers are deduplicated.
 /// The DNS servers are returned in the order they are defined in the system configuration.
 ///
 /// # Returns
 ///
 /// The DNS servers:
-///   * The DNS servers are returned as a list of IP addresses.
+///   * The DNS servers are returned as a list of `DnsServer` structs.
 ///   * The DNS servers are deduplicated.
 ///   * The DNS servers are returned in the order they are defined in the system configuration.
 ///
@@ -111,13 +127,18 @@ pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
 /// let dns_servers = ip::list_dns_servers().unwrap();
 /// println!("dns servers: {:?}", dns_servers);
 /// ```
-pub fn list_dns_servers() -> Result<Vec<String>> {
+pub fn list_dns_servers() -> Result<Vec<DnsServer>> {
     let (conf, _) = system_conf::read_system_conf()?;
     let nameservers = conf
         .name_servers()
         .iter()
         .map(|ns| ns.socket_addr.ip().to_string())
         .unique()
+        .enumerate()
+        .map(|(i, address)| DnsServer {
+            address,
+            order: i + 1,
+        })
         .collect::<Vec<_>>();
 
     Ok(nameservers)

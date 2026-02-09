@@ -168,7 +168,7 @@ fn display_result(result: &CommandResult, format: OutputFormat) -> Result<()> {
 #[serde(untagged)]
 enum CommandResult {
     Ips(Vec<network::Ip>),
-    Dns(Vec<String>),
+    Dns(Vec<network::DnsServer>),
     Date(datetime::Date),
     Time(datetime::Time),
     Datetime(datetime::Datetime),
@@ -191,7 +191,14 @@ impl Display for CommandResult {
                 write!(f, "{}", ips.join("\n"))
             }
             Self::Dns(dns) => {
-                write!(f, "{}", dns.join("\n"))
+                write!(
+                    f,
+                    "{}",
+                    dns.iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                )
             }
             Self::Date(date) => date.fmt(f),
             Self::Time(time) => time.fmt(f),
