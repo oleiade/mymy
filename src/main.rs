@@ -35,10 +35,19 @@ pub struct Cli {
 enum Commands {
     #[command(name = "ips")]
     #[command(about = "Display your IP addresses")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Find all IP addresses associated with your system, both local and external.\n\
-    By default, it shows both public and local IP addresses.\n\
-    Use the --only flag to display one specific category."
+        long_about = "Find all IP addresses associated with your system, both local and external.
+By default, it shows both public and local IP addresses.
+Use the --only flag to display one specific category.
+
+Examples:
+  $ my ips
+  public\t93.184.216.34
+  local\t192.168.1.42
+
+  $ my ips --only public
+  public\t93.184.216.34"
     )]
     Ips {
         #[arg(long)]
@@ -48,17 +57,26 @@ enum Commands {
     #[command(name = "dns")]
     #[command(subcommand_help_heading = "Network")]
     #[command(about = "Display your system's DNS servers")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Show the DNS servers configured on your system, listed in the order they are used."
+        long_about = "Show the DNS servers configured on your system, listed in the order they are used.
+
+Example:
+  $ my dns
+  server 1\t8.8.8.8
+  server 2\t8.8.4.4"
     )]
     Dns,
 
-    // #[command(arg_required_else_help = true)]
     #[command(name = "date")]
     #[command(about = "Display your system's date")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Show the current date on your system in a human-readable format.\n
-    Example: Saturday, 8 April, 2023, week 14"
+        long_about = "Show the current date on your system in a human-readable format.
+
+Example:
+  $ my date
+  Saturday, 8 April, 2023, week 14"
     )]
     Date,
 
@@ -67,71 +85,140 @@ enum Commands {
     #[command(verbatim_doc_comment)]
     #[command(
         long_about = "Show the current time on your system, along with the offset from the central NTP
-clock server, in a 24-hour human-readable format:
+clock server, in a 24-hour human-readable format.
 
-  20:20:2 +02:00
+Example:
+  $ my time
+  20:20:02 +02:00
   +0.0672 seconds"
     )]
     Time,
 
     #[command(name = "datetime")]
     #[command(about = "Display your system's current date and time")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Show the current date and time on your system, along with the offset from\n\
-    the central NTP clock server, in a human-readable format.\n\
-    Example: Saturday, 8 April, 2023, week 14 20:20:2 UTC +02:00 ±0.0684 seconds"
+        long_about = "Show the current date and time on your system, along with the offset from
+the central NTP clock server, in a human-readable format.
+
+Example:
+  $ my datetime
+  Saturday, 8 April, 2023, week 14
+  20:20:02 UTC +02:00
+  +0.0684 seconds"
     )]
     Datetime,
 
     #[command(name = "hostname")]
     #[command(about = "Display your system's hostname")]
-    #[command(long_about = "Show the hostname assigned to your system.")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Show the hostname assigned to your system.
+
+Example:
+  $ my hostname
+  MacBook-Pro.local"
+    )]
     Hostname,
 
     #[command(name = "username")]
     #[command(about = "Display your current system user's username")]
-    #[command(long_about = "Show the username of the currently logged-in system user.")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Show the username of the currently logged-in system user.
+
+Example:
+  $ my username
+  alice"
+    )]
     Username,
 
     #[command(name = "device-name")]
     #[command(about = "Display your device's name")]
-    #[command(long_about = "Show the configured name of your device.")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Show the configured name of your device.
+
+Example:
+  $ my device-name
+  Alice's MacBook Pro"
+    )]
     DeviceName,
 
     #[command(name = "os")]
     #[command(about = "Display your system's OS name and version")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Show the name and version of the operating system installed on your system."
+        long_about = "Show the name and version of the operating system installed on your system.
+
+Example:
+  $ my os
+  macOS 15.2 Sequoia"
     )]
     Os,
 
     #[command(name = "architecture")]
     #[command(about = "Display your system's CPU architecture")]
-    #[command(long_about = "Show the architecture of the CPU installed on your system.")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Show the architecture of the CPU installed on your system.
+
+Example:
+  $ my architecture
+  aarch64"
+    )]
     Architecture,
 
     #[command(name = "interfaces")]
     #[command(about = "Display your system's network interfaces")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "List all the network interfaces configured on your system, presented in the order they are used."
+        long_about = "List all the network interfaces configured on your system, presented in the
+order they are used.
+
+Example:
+  $ my interfaces
+  en0\t192.168.1.42
+  en0\tfe80::1a2b:3c4d:5e6f:7890
+  lo0\t127.0.0.1"
     )]
     Interfaces,
 
     #[command(name = "disks")]
     #[command(about = "Display your system's disks")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Lists all the disks installed on your system, providing details such as disk name, type, free space, total capacity, and percentage of free space."
+        long_about = "List the disks installed on your system, showing name, type, free space,
+total capacity, and percentage of free space.
+
+Example:
+  $ my disks
+  Macintosh HD, SSD, 142.50 GiB free of 460.43 GiB (30.9% free)"
     )]
     Disks,
 
     #[command(name = "cpu")]
     #[command(about = "Display your system's CPU")]
-    #[command(long_about = "Show the name of the CPU installed on your system.")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Show the CPU installed on your system, including model, core count, and frequency.
+
+Example:
+  $ my cpu
+  Apple M1 Pro, 10 cores running at 3.2 GHz"
+    )]
     Cpu,
 
     #[command(name = "ram")]
     #[command(about = "Display your system's RAM")]
-    #[command(long_about = "Show the amount of RAM installed and used on your system.")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Show the amount of RAM installed and used on your system.
+
+Example:
+  $ my ram
+  32.00 GiB installed, 18.50 GiB in use (57.8%)"
+    )]
     Ram,
 }
 
