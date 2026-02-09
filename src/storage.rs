@@ -69,22 +69,25 @@ impl Display for DiskInfo {
         let percentage = Percentage::from_ratio(self.free_space, self.total_space);
         let percentage_display = format!("{percentage}");
 
-        let (colored_free_space, color_free_percentage) = match percentage.tenths {
-            _ if percentage.tenths < 100 => (free_space.red(), percentage_display.as_str().red()),
-            _ if percentage.tenths < 200 => {
-                (free_space.yellow(), percentage_display.as_str().yellow())
+        let (colored_free_space, color_free_percentage, indicator) = match percentage.tenths {
+            _ if percentage.tenths < 100 => {
+                (free_space.red(), percentage_display.as_str().red(), " !")
             }
-            _ => (free_space.green(), percentage_display.as_str().green()),
+            _ if percentage.tenths < 200 => {
+                (free_space.yellow(), percentage_display.as_str().yellow(), " \u{25b2}")
+            }
+            _ => (free_space.green(), percentage_display.as_str().green(), ""),
         };
 
         write!(
             f,
-            "{}, {}, {} free of {} ({}% free)",
+            "{}, {}, {} free of {} ({}% free{})",
             self.name.cyan().bold(),
             self.type_.bright_white(),
             colored_free_space,
             total_space,
-            color_free_percentage
+            color_free_percentage,
+            indicator,
         )
     }
 }

@@ -159,18 +159,19 @@ impl Display for Ram {
         let percentage = Percentage::from_ratio(self.used, self.total);
         let percentage_display = format!("{percentage}");
 
-        let (used_colored, used_percentage_colored) = match percentage.tenths {
-            p if p > 900 => (used.red(), percentage_display.as_str().red()),
-            p if p > 700 => (used.yellow(), percentage_display.as_str().yellow()),
-            _ => (used.green(), percentage_display.as_str().green()),
+        let (used_colored, used_percentage_colored, indicator) = match percentage.tenths {
+            p if p > 900 => (used.red(), percentage_display.as_str().red(), " !"),
+            p if p > 700 => (used.yellow(), percentage_display.as_str().yellow(), " \u{25b2}"),
+            _ => (used.green(), percentage_display.as_str().green(), ""),
         };
 
         write!(
             f,
-            "{} installed, {} in use ({}%)",
+            "{} installed, {} in use ({}%{})",
             total.bold(),
             used_colored,
             used_percentage_colored,
+            indicator,
         )
     }
 }
