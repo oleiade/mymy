@@ -41,6 +41,7 @@ enum Commands {
     },
 
     #[command(name = "dns")]
+    #[command(subcommand_help_heading = "Network")]
     #[command(about = "Display your system's DNS servers")]
     #[command(
         long_about = "Show the DNS servers configured on your system, listed in the order they are used."
@@ -51,17 +52,20 @@ enum Commands {
     #[command(name = "date")]
     #[command(about = "Display your system's date")]
     #[command(
-        long_about = "Show the current date on your system in a human-readable format.\n\
+        long_about = "Show the current date on your system in a human-readable format.\n
     Example: Saturday, 8 April, 2023, week 14"
     )]
     Date,
 
     #[command(name = "time")]
     #[command(about = "Display your system's current time")]
+    #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Show the current time on your system, along with the offset from the central NTP\n\
-    clock server, in a 24-hour human-readable format.\n
-    Example: 20:20:2 UTC +02:00 ±0.0672 seconds"
+        long_about = "Show the current time on your system, along with the offset from the central NTP
+clock server, in a 24-hour human-readable format:
+
+  20:20:2 +02:00
+  +0.0672 seconds"
     )]
     Time,
 
