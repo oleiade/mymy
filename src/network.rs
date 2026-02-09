@@ -194,10 +194,10 @@ pub fn interfaces() -> Result<Vec<Interface>> {
 #[derive(Serialize)]
 pub struct Interface {
     /// The name of the network interface.
-    name: String,
+    pub(crate) name: String,
 
     /// The IP address of the network interface.
-    ip: String,
+    pub(crate) ip: String,
 }
 
 impl Display for Interface {

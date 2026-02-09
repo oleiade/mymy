@@ -1,9 +1,10 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter, Write as _};
 
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand, ValueEnum};
+use colored::Colorize;
 use human_panic::setup_panic;
-use serde::{Serialize};
+use serde::Serialize;
 
 mod datetime;
 mod format;
@@ -221,6 +222,22 @@ Example:
   32.00 GiB installed, 18.50 GiB in use (57.8%)"
     )]
     Ram,
+
+    #[command(name = "everything")]
+    #[command(about = "Display a full snapshot of your system")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Show all available system information at once: network, system, datetime,
+and storage details in a single output.
+
+If a piece of information cannot be retrieved, it is silently skipped
+with a warning on stderr.
+
+Examples:
+  $ my everything
+  $ my --format json everything"
+    )]
+    Everything,
 }
 
 #[tokio::main]
@@ -252,6 +269,228 @@ fn display_result(result: &CommandResult, format: OutputFormat) -> Result<()> {
     Ok(())
 }
 
+/// A full snapshot of all system information.
+#[derive(Serialize)]
+struct Everything {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ips: Option<Vec<network::Ip>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    dns: Option<Vec<network::DnsServer>>,
+
+    date: datetime::Date,
+    time: datetime::Time,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    hostname: Option<system::Hostname>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    username: Option<system::Username>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    device_name: Option<system::DeviceName>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    os: Option<system::OperatingSystem>,
+
+    architecture: system::Architecture,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    interfaces: Option<Vec<network::Interface>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    disks: Option<Vec<storage::DiskInfo>>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cpu: Option<system::Cpu>,
+
+    ram: system::Ram,
+}
+
+impl Display for Everything {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // ── SYSTEM ──
+        // First section has no leading newline
+        writeln!(f, " {}", "SYSTEM".bold().bright_blue())?;
+
+        if let Some(hostname) = &self.hostname {
+            write_field(f, "hostname", hostname)?;
+        }
+        if let Some(username) = &self.username {
+            write_field(f, "username", username)?;
+        }
+        if let Some(device_name) = &self.device_name {
+            write_field(f, "device-name", device_name)?;
+        }
+        if let Some(os) = &self.os {
+            write_field(f, "os", os)?;
+        }
+        write_field(f, "architecture", &self.architecture)?;
+        if let Some(cpu) = &self.cpu {
+            write_field(f, "cpu", cpu)?;
+        }
+        write_field(f, "ram", &self.ram)?;
+
+        // ── DATETIME ──
+        write_section_header(f, "DATETIME")?;
+
+        write_field(f, "date", &self.date)?;
+        write_multiline_field(f, "time", &self.time)?;
+
+        // ── STORAGE ──
+        write_section_header(f, "STORAGE")?;
+
+        if let Some(disks) = &self.disks {
+            write_vec_field(f, "disks", disks)?;
+        }
+
+        // ── NETWORK ──
+        write_section_header(f, "NETWORK")?;
+
+        self.write_network_section(f)?;
+
+        Ok(())
+    }
+}
+
+impl Everything {
+    /// Writes all network fields with a common inner column width so values align.
+    fn write_network_section(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // Collect (inner_label, value) pairs across all network subsections
+        let mut rows: Vec<(&str, String, String)> = Vec::new();
+
+        if let Some(ips) = &self.ips {
+            for ip in ips {
+                rows.push(("ips", ip.category.to_string(), ip.address.to_string()));
+            }
+        }
+        if let Some(dns) = &self.dns {
+            for server in dns {
+                rows.push((
+                    "dns",
+                    format!("server {}", server.order),
+                    server.address.clone(),
+                ));
+            }
+        }
+        if let Some(interfaces) = &self.interfaces {
+            for iface in interfaces {
+                rows.push(("interfaces", iface.name.clone(), iface.ip.clone()));
+            }
+        }
+
+        if rows.is_empty() {
+            return Ok(());
+        }
+
+        // Compute inner column width from the widest inner label
+        let inner_width = rows.iter().map(|(_, lbl, _)| lbl.len()).max().unwrap_or(0) + 1;
+
+        let mut current_field: Option<&str> = None;
+        for (field, inner_label, value) in &rows {
+            if current_field == Some(field) {
+                // Continuation row: indent past the outer label
+                let indent = 2 + LABEL_WIDTH;
+                writeln!(
+                    f,
+                    "{:indent$}{:<iw$}{}",
+                    "",
+                    inner_label,
+                    value,
+                    iw = inner_width,
+                )?;
+            } else {
+                // First row of a new field: print the outer label
+                writeln!(
+                    f,
+                    "  {:<lw$}{:<iw$}{}",
+                    field.dimmed(),
+                    inner_label,
+                    value,
+                    lw = LABEL_WIDTH,
+                    iw = inner_width,
+                )?;
+                current_field = Some(field);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+/// Width of the label column for alignment.
+const LABEL_WIDTH: usize = 15;
+
+fn write_section_header(f: &mut Formatter<'_>, title: &str) -> std::fmt::Result {
+    write!(f, "\n {}\n", title.bold().bright_blue())
+}
+
+fn write_field(f: &mut Formatter<'_>, label: &str, value: &impl Display) -> std::fmt::Result {
+    writeln!(f, "  {:<width$}{}", label.dimmed(), value, width = LABEL_WIDTH)
+}
+
+fn write_multiline_field(
+    f: &mut Formatter<'_>,
+    label: &str,
+    value: &impl Display,
+) -> std::fmt::Result {
+    let text = format!("{value}");
+    let mut lines = text.lines();
+
+    if let Some(first) = lines.next() {
+        writeln!(f, "  {:<width$}{first}", label.dimmed(), width = LABEL_WIDTH)?;
+        let indent = 2 + LABEL_WIDTH;
+        for line in lines {
+            writeln!(f, "{:indent$}{line}", "")?;
+        }
+    }
+
+    Ok(())
+}
+
+fn write_vec_field<T: Display>(
+    f: &mut Formatter<'_>,
+    label: &str,
+    items: &[T],
+) -> std::fmt::Result {
+    let indent = 2 + LABEL_WIDTH;
+    let mut iter = items.iter();
+
+    if let Some(first) = iter.next() {
+        let first_text = {
+            let mut buf = String::new();
+            write!(buf, "{first}")?;
+            buf
+        };
+        let mut first_lines = first_text.lines();
+
+        if let Some(first_line) = first_lines.next() {
+            writeln!(
+                f,
+                "  {:<width$}{first_line}",
+                label.dimmed(),
+                width = LABEL_WIDTH
+            )?;
+            for line in first_lines {
+                writeln!(f, "{:indent$}{line}", "")?;
+            }
+        }
+
+        for item in iter {
+            let text = {
+                let mut buf = String::new();
+                write!(buf, "{item}")?;
+                buf
+            };
+            for line in text.lines() {
+                writeln!(f, "{:indent$}{line}", "")?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// `CommandResult` holds the result of a command.
 ///
 /// This is used to facilitate factorizing the command execution,
@@ -274,6 +513,7 @@ enum CommandResult {
     Disks(Vec<storage::DiskInfo>),
     Cpu(system::Cpu),
     Ram(system::Ram),
+    Everything(Box<Everything>),
 }
 
 impl Display for CommandResult {
@@ -325,6 +565,7 @@ impl Display for CommandResult {
             }
             Self::Cpu(cpu) => cpu.fmt(f),
             Self::Ram(ram) => ram.fmt(f),
+            Self::Everything(everything) => everything.fmt(f),
         }
     }
 }
@@ -351,6 +592,7 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
         Commands::Disks => handle_disks(),
         Commands::Cpu => handle_cpu(),
         Commands::Ram => Ok(handle_ram()),
+        Commands::Everything => Ok(handle_everything().await),
     }
 }
 
@@ -474,4 +716,88 @@ fn handle_cpu() -> Result<CommandResult> {
 
 fn handle_ram() -> CommandResult {
     CommandResult::Ram(system::ram())
+}
+
+/// Converts a `Result<T>` into `Option<T>`, printing a warning to stderr on error.
+fn warn_on_err<T>(result: Result<T>, label: &str) -> Option<T> {
+    match result {
+        Ok(v) => Some(v),
+        Err(e) => {
+            eprintln!("warning: could not determine {label}: {e}");
+            None
+        }
+    }
+}
+
+/// Best-effort collection of public and local IP addresses.
+async fn gather_ips() -> Option<Vec<network::Ip>> {
+    let mut ips = Vec::new();
+
+    match network::query_public_ip(network::OPENDNS_SERVER_HOST, network::DNS_DEFAULT_PORT).await {
+        Ok(public_ip) => ips.push(network::Ip {
+            category: network::IpCategory::Public,
+            address: public_ip,
+        }),
+        Err(e) => eprintln!("warning: could not determine public IP: {e}"),
+    }
+
+    match local_ip_address::local_ip() {
+        Ok(local_ip) => ips.push(network::Ip {
+            category: network::IpCategory::Local,
+            address: local_ip,
+        }),
+        Err(e) => eprintln!("warning: could not determine local IP: {e}"),
+    }
+
+    if ips.is_empty() {
+        None
+    } else {
+        Some(ips)
+    }
+}
+
+async fn handle_everything() -> CommandResult {
+    // Async operations run concurrently
+    let (ips, time) = tokio::join!(gather_ips(), datetime::time());
+
+    // Sync operations
+    let date = datetime::date();
+    let dns = warn_on_err(
+        network::list_dns_servers().context("listing DNS servers"),
+        "dns servers",
+    );
+    let hostname = warn_on_err(system::hostname(), "hostname");
+    let username = warn_on_err(system::username(), "username");
+    let device_name = warn_on_err(system::device_name(), "device name");
+    let os = warn_on_err(system::os(), "os");
+    let architecture = system::architecture();
+    let interfaces = warn_on_err(
+        network::interfaces().context("listing network interfaces"),
+        "network interfaces",
+    );
+    let disks = warn_on_err(
+        storage::list_disks().context("listing disks"),
+        "disks",
+    );
+    let cpu = warn_on_err(
+        system::cpus().context("listing CPUs"),
+        "cpu",
+    );
+    let ram = system::ram();
+
+    CommandResult::Everything(Box::new(Everything {
+        ips,
+        dns,
+        date,
+        time,
+        hostname,
+        username,
+        device_name,
+        os,
+        architecture,
+        interfaces,
+        disks,
+        cpu,
+        ram,
+    }))
 }
