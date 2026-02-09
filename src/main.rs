@@ -18,6 +18,11 @@ mod system;
     long_about = "Easily access important details about your device, such as IP addresses, DNS servers, date, time, and more."
 )]
 #[command(arg_required_else_help = true)]
+#[command(after_long_help = "\
+Exit codes:\n  \
+  0  Success (including partial success, e.g. public IP unreachable but local IP found)\n  \
+  1  Command failed\n  \
+  2  Invalid arguments")]
 pub struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
