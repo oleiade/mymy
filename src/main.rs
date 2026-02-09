@@ -72,7 +72,8 @@ Example:
     #[command(about = "Display your system's date")]
     #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "Show the current date on your system in a human-readable format.
+        long_about = "Show the current date on your system in a fixed, locale-independent format:
+weekday, day month, year, week number.
 
 Example:
   $ my date
