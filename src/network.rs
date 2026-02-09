@@ -146,6 +146,7 @@ pub fn list_dns_servers() -> Result<Vec<DnsServer>> {
 
 /// Holds the category of an IP address. The category can be public, local or any.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Serialize, ValueEnum)]
+#[serde(rename_all = "snake_case")]
 pub enum IpCategory {
     #[clap(name = "public")]
     Public,
