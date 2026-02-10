@@ -1,24 +1,60 @@
 name: Release
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - 'v*'
+
+permissions: {}
 
 jobs:
   release:
-    name: release ${{ matrix.target }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        target: [x86_64-pc-windows-gnu, x86_64-unknown-linux-musl]
+    name: Release
+    runs-on: macos-latest
+    permissions:
+      contents: write # for goreleaser
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.5
+      - name: Checkout the code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install stable toolchain for x86 linux
+        uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c
+        with:
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+          cache: false
+
+      - name: Install stable toolchain for aarch64 linux
+        uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c
+        with:
+          toolchain: stable
+          target: aarch64-unknown-linux-gnu
+          cache: false
+
+      - name: Install stable toolchain for macOS
+        uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c
+        with:
+          toolchain: stable
+          target: aarch64-apple-darwin
+          cache: false
+
+      - name: Setup zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          use-cache: false
+
+      - name: Install cargo-zigbuild
+        run: cargo install --locked cargo-zigbuild
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean --config=.goreleaser.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REMOVE_ME: "This is a test"
-        with:
-          RUSTTARGET: ${{ matrix.target }}
-          EXTRA_FILES: "README.md LICENSE"
+          DEPLOYMENT_ACCESS_TOKEN: ${{ secrets.DEPLOYMENT_ACCESS_TOKEN }}
