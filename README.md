@@ -6,11 +6,13 @@
 
 ## Features
 
-The main commands available in the mymy are:
+All commands support `--format json` for machine-readable JSON output.
+
+The main commands available in mymy are:
 - `cpu`: Get information about your CPU, including its name, number of cores, and clock speed.
-- `ips`: Find out all the IP addresses allocated to your system, including local and external ones.
-- `dns`: Discover your system's configured DNS server.
-- `disks`: List all the disks attached to your system.
+- `ips`: Find out all the IP addresses allocated to your system, including local and external ones. Use `--only public` or `--only local` to filter.
+- `dns`: List your system's configured DNS servers in priority order.
+- `disks`: List all the disks attached to your system with free/total space.
 - `date`: Consult your system's configured date in a human-readable format.
 - `time`: Consult your system's configured time and get the offset from the central NTP clock server.
 - `datetime`: A combination of the `date` and `time` commands.
@@ -21,6 +23,7 @@ The main commands available in the mymy are:
 - `ram`: Get information about your system's RAM, including its total capacity and usage.
 - `architecture`: Determine your CPU's architecture.
 - `interfaces`: List all the network interfaces configured on your system.
+- `everything`: Display a full snapshot of all system information at once.
 
 ## Benefits
 
@@ -66,45 +69,58 @@ Here are some example usages of the command:
 
 ```fish
 $ my ips
-public	84.172.75.134
-local	192.168.2.246
+public	93.184.216.34
+local	192.168.1.42
 
 $ my dns
-1.1.1.1
-8.8.8.8
-192.168.1.1
+server 1	8.8.8.8
+server 2	8.8.4.4
 
 $ my date
 Saturday, 8 April, 2023, week 14
 
 $ my time
-20:51:42 UTC +02:00
-±0.0795 seconds
+20:20:02 +02:00
++0.0672 seconds
 
 $ my datetime
 Saturday, 8 April, 2023, week 14
-20:51:53 UTC +02:00
-±0.0801 seconds
+20:20:02 +02:00
++0.0684 seconds
 
 $ my hostname
-oleiades-laptop.local
+MacBook-Pro.local
 
 $ my username
-oleiade
+alice
 
 $ my device-name
-Oleiade Laptop
+Alice's MacBook Pro
 
 $ my os
-macOS 13.2.1
+macOS 15.2 Sequoia
+
+$ my cpu
+Apple M1 Pro, 10 cores running at 3.2 GHz
+
+$ my ram
+32.00 GiB installed, 18.50 GiB in use (57.8%)
 
 $ my architecture
-arm64
+aarch64
+
+$ my disks
+Macintosh HD, SSD, 142.50 GiB free of 460.43 GiB (30.9% free)
 
 $ my interfaces
-lo0 127.0.0.1
-lo0 ::1
-en0 192.168.2.242
+en0	192.168.1.42
+en0	fe80::1a2b:3c4d:5e6f:7890
+lo0	127.0.0.1
+
+$ my --format json hostname
+{
+  "hostname": "MacBook-Pro.local"
+}
 ```
 
 # Contributing
@@ -135,7 +151,7 @@ git push origin feature/add-new-command
 
 ## Contribution Best Practices
 
-- Always work on a new branch starting from the `develop` branch when making changes. Avoid making changes directly to the `main` branch.
+- Always work on a new branch starting from `main` when making changes. Avoid making changes directly to the `main` branch.
 - Keep your pull requests focused on a single feature or bugfix. If you have multiple unrelated changes, submit separate pull requests for each.
 - Make sure your code is properly formatted and follows the project's coding style and conventions.
 - Write clear and concise commit messages that describe the purpose of your changes.
