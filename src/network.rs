@@ -1,15 +1,15 @@
 use std::fmt::{Display, Formatter};
 use std::net::{IpAddr, SocketAddr};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::ValueEnum;
-use itertools::Itertools;
-use local_ip_address::list_afinet_netifas;
-use serde::{Deserialize, Serialize};
 use hickory_proto::xfer::Protocol;
 use hickory_resolver::config::{NameServerConfig, ResolverConfig, ResolverOpts};
 use hickory_resolver::name_server::TokioConnectionProvider;
-use hickory_resolver::{system_conf, Resolver};
+use hickory_resolver::{Resolver, system_conf};
+use itertools::Itertools;
+use local_ip_address::list_afinet_netifas;
+use serde::{Deserialize, Serialize};
 
 /// A categorized IP address.
 #[derive(Serialize, Deserialize, Debug)]
@@ -63,9 +63,10 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
     resolver_opts.timeout = std::time::Duration::from_secs(5);
 
     // Create the resolver
-    let resolver = Resolver::builder_with_config(resolver_config, TokioConnectionProvider::default())
-        .with_options(resolver_opts)
-        .build();
+    let resolver =
+        Resolver::builder_with_config(resolver_config, TokioConnectionProvider::default())
+            .with_options(resolver_opts)
+            .build();
 
     // Query the public IP address from the OpenDNS server
     let ipv4_response = resolver.ipv4_lookup("myip.opendns.com").await?;

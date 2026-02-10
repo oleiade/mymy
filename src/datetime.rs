@@ -48,8 +48,8 @@ pub async fn time() -> Time {
     match AsyncSntpClient::new().synchronize("pool.ntp.org").await {
         Ok(sntp_time) => {
             t.offset = Some(sntp_time.clock_offset().as_secs_f64());
-        },
-        Err(_) => eprintln!("warning: could not sync with NTP server (network timeout)")
+        }
+        Err(_) => eprintln!("warning: could not sync with NTP server (network timeout)"),
     }
 
     t
@@ -70,7 +70,11 @@ impl Display for Time {
         let hour = format!("{:02}", self.hour).bold();
         let minute = format!("{:02}", self.minute).bold();
         let second = format!("{:02}", self.second);
-        write!(f, "{hour}:{minute}:{second} {}", self.timezone.bright_cyan())?;
+        write!(
+            f,
+            "{hour}:{minute}:{second} {}",
+            self.timezone.bright_cyan()
+        )?;
 
         if let Some(offset) = self.offset {
             let sign = if offset >= 0.0 { '+' } else { '-' };

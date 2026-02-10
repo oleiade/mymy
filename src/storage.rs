@@ -6,7 +6,7 @@ use itertools::Itertools;
 use serde::Serialize;
 use sysinfo::Disks;
 
-use crate::format::{human_readable_size, Percentage};
+use crate::format::{Percentage, human_readable_size};
 
 /// List all disks and their information
 ///
@@ -73,9 +73,11 @@ impl Display for DiskInfo {
             _ if percentage.tenths < 100 => {
                 (free_space.red(), percentage_display.as_str().red(), " !")
             }
-            _ if percentage.tenths < 200 => {
-                (free_space.yellow(), percentage_display.as_str().yellow(), " \u{25b2}")
-            }
+            _ if percentage.tenths < 200 => (
+                free_space.yellow(),
+                percentage_display.as_str().yellow(),
+                " \u{25b2}",
+            ),
             _ => (free_space.green(), percentage_display.as_str().green(), ""),
         };
 

@@ -114,13 +114,11 @@ Example:
     #[command(name = "hostname")]
     #[command(about = "Display your system's hostname")]
     #[command(verbatim_doc_comment)]
-    #[command(
-        long_about = "Show the hostname assigned to your system.
+    #[command(long_about = "Show the hostname assigned to your system.
 
 Example:
   $ my hostname
-  MacBook-Pro.local"
-    )]
+  MacBook-Pro.local")]
     Hostname,
 
     #[command(name = "username")]
@@ -138,13 +136,11 @@ Example:
     #[command(name = "device-name")]
     #[command(about = "Display your device's name")]
     #[command(verbatim_doc_comment)]
-    #[command(
-        long_about = "Show the configured name of your device.
+    #[command(long_about = "Show the configured name of your device.
 
 Example:
   $ my device-name
-  Alice's MacBook Pro"
-    )]
+  Alice's MacBook Pro")]
     DeviceName,
 
     #[command(name = "os")]
@@ -426,7 +422,13 @@ fn write_section_header(f: &mut Formatter<'_>, title: &str) -> std::fmt::Result 
 }
 
 fn write_field(f: &mut Formatter<'_>, label: &str, value: &impl Display) -> std::fmt::Result {
-    writeln!(f, "  {:<width$}{}", label.dimmed(), value, width = LABEL_WIDTH)
+    writeln!(
+        f,
+        "  {:<width$}{}",
+        label.dimmed(),
+        value,
+        width = LABEL_WIDTH
+    )
 }
 
 fn write_multiline_field(
@@ -438,7 +440,12 @@ fn write_multiline_field(
     let mut lines = text.lines();
 
     if let Some(first) = lines.next() {
-        writeln!(f, "  {:<width$}{first}", label.dimmed(), width = LABEL_WIDTH)?;
+        writeln!(
+            f,
+            "  {:<width$}{first}",
+            label.dimmed(),
+            width = LABEL_WIDTH
+        )?;
         let indent = 2 + LABEL_WIDTH;
         for line in lines {
             writeln!(f, "{:indent$}{line}", "")?;
@@ -609,8 +616,7 @@ async fn handle_datetime() -> CommandResult {
 }
 
 fn handle_dns() -> Result<CommandResult> {
-    let servers = network::list_dns_servers()
-        .context("listing the system's dns servers failed")?;
+    let servers = network::list_dns_servers().context("listing the system's dns servers failed")?;
     Ok(CommandResult::Dns(servers))
 }
 
@@ -646,24 +652,20 @@ async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> 
 
             // Try discovering public IP
             match network::query_public_ip(open_dns_host, open_dns_port).await {
-                Ok(public_ip) => ips.push(
-                    network::Ip{
-                        category: network::IpCategory::Public,
-                        address: public_ip,
-                    }
-                ),
-                Err(e) => eprintln!("warning: could not determine public IP: {e}")
+                Ok(public_ip) => ips.push(network::Ip {
+                    category: network::IpCategory::Public,
+                    address: public_ip,
+                }),
+                Err(e) => eprintln!("warning: could not determine public IP: {e}"),
             }
 
             // And try discovering local IP
             match local_ip_address::local_ip() {
-                Ok(local_ip) => ips.push(
-                    network::Ip {
-                        category: network::IpCategory::Local,
-                        address: local_ip,
-                    }
-                ),
-                Err(e) => eprintln!("warning: could not determine local IP: {e}")
+                Ok(local_ip) => ips.push(network::Ip {
+                    category: network::IpCategory::Local,
+                    address: local_ip,
+                }),
+                Err(e) => eprintln!("warning: could not determine local IP: {e}"),
             }
 
             if ips.is_empty() {
@@ -676,8 +678,7 @@ async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> 
 }
 
 fn handle_hostname() -> Result<CommandResult> {
-    system::hostname()
-        .map(CommandResult::Hostname)
+    system::hostname().map(CommandResult::Hostname)
 }
 
 fn handle_username() -> Result<CommandResult> {
@@ -697,20 +698,18 @@ fn handle_architecture() -> CommandResult {
 }
 
 fn handle_interfaces() -> Result<CommandResult> {
-    let interfaces = network::interfaces()
-        .with_context(|| "listing the system's network interfaces failed")?;
+    let interfaces =
+        network::interfaces().with_context(|| "listing the system's network interfaces failed")?;
     Ok(CommandResult::Interfaces(interfaces))
 }
 
 fn handle_disks() -> Result<CommandResult> {
-    let disks = storage::list_disks()
-        .context("listing the disks failed")?;
+    let disks = storage::list_disks().context("listing the disks failed")?;
     Ok(CommandResult::Disks(disks))
 }
 
 fn handle_cpu() -> Result<CommandResult> {
-    let cpus = system::cpus()
-        .context("listing the system's cpus failed")?;
+    let cpus = system::cpus().context("listing the system's cpus failed")?;
     Ok(CommandResult::Cpu(cpus))
 }
 
@@ -749,11 +748,7 @@ async fn gather_ips() -> Option<Vec<network::Ip>> {
         Err(e) => eprintln!("warning: could not determine local IP: {e}"),
     }
 
-    if ips.is_empty() {
-        None
-    } else {
-        Some(ips)
-    }
+    if ips.is_empty() { None } else { Some(ips) }
 }
 
 async fn handle_everything() -> CommandResult {
@@ -775,14 +770,8 @@ async fn handle_everything() -> CommandResult {
         network::interfaces().context("listing network interfaces"),
         "network interfaces",
     );
-    let disks = warn_on_err(
-        storage::list_disks().context("listing disks"),
-        "disks",
-    );
-    let cpu = warn_on_err(
-        system::cpus().context("listing CPUs"),
-        "cpu",
-    );
+    let disks = warn_on_err(storage::list_disks().context("listing disks"), "disks");
+    let cpu = warn_on_err(system::cpus().context("listing CPUs"), "cpu");
     let ram = system::ram();
 
     CommandResult::Everything(Box::new(Everything {

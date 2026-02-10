@@ -1,5 +1,5 @@
-use std::fmt;
 use fmt::Display;
+use std::fmt;
 
 /// Convert bytes to human readable size
 pub fn human_readable_size(bytes: u64) -> String {

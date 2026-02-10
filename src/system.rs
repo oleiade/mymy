@@ -1,14 +1,14 @@
 use std::fmt::Display;
 
+use crate::format::{Percentage, human_readable_size};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use serde::Serialize;
 use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
-use crate::format::{human_readable_size, Percentage};
 
 #[derive(Serialize)]
 pub struct Hostname {
-   pub hostname: String,
+    pub hostname: String,
 }
 
 impl Display for Hostname {
@@ -20,7 +20,7 @@ impl Display for Hostname {
 /// returns the hostname of the system
 pub fn hostname() -> Result<Hostname> {
     let hostname = whoami::hostname()?;
-    Ok(Hostname{ hostname })
+    Ok(Hostname { hostname })
 }
 
 #[derive(Serialize)]
@@ -54,7 +54,7 @@ impl Display for DeviceName {
 /// returns the device name of the system
 pub fn device_name() -> Result<DeviceName> {
     let device_name = whoami::devicename()?;
-    Ok(DeviceName{ device_name })
+    Ok(DeviceName { device_name })
 }
 
 #[derive(Serialize)]
@@ -71,7 +71,7 @@ impl Display for OperatingSystem {
 /// returns the operating system the system is running
 pub fn os() -> Result<OperatingSystem> {
     let name = whoami::distro()?;
-    Ok(OperatingSystem{ name })
+    Ok(OperatingSystem { name })
 }
 
 #[derive(Serialize)]
@@ -87,7 +87,9 @@ impl Display for Architecture {
 
 /// returns the architecture of the system
 pub fn architecture() -> Architecture {
-    Architecture{ architecture: whoami::cpu_arch().to_string() }
+    Architecture {
+        architecture: whoami::cpu_arch().to_string(),
+    }
 }
 
 /// Describes a CPU
@@ -112,11 +114,10 @@ impl Display for Cpu {
             "{}, {} cores running at {} GHz",
             self.brand.bold(),
             format!("{}", self.core_count).cyan(),
-            format!("{ghz:.1}").green()   // "2.4 GHz"
+            format!("{ghz:.1}").green() // "2.4 GHz"
         )
     }
 }
-
 
 /// returns the CPU of the system as a Cpu struct
 pub fn cpus() -> Result<Cpu> {
@@ -161,7 +162,11 @@ impl Display for Ram {
 
         let (used_colored, used_percentage_colored, indicator) = match percentage.tenths {
             p if p > 900 => (used.red(), percentage_display.as_str().red(), " !"),
-            p if p > 700 => (used.yellow(), percentage_display.as_str().yellow(), " \u{25b2}"),
+            p if p > 700 => (
+                used.yellow(),
+                percentage_display.as_str().yellow(),
+                " \u{25b2}",
+            ),
             _ => (used.green(), percentage_display.as_str().green(), ""),
         };
 
@@ -176,7 +181,6 @@ impl Display for Ram {
     }
 }
 
-
 /// returns the RAM of the system as a Ram struct
 pub fn ram() -> Ram {
     let system = System::new_with_specifics(
@@ -190,5 +194,3 @@ pub fn ram() -> Ram {
         available: system.available_memory(),
     }
 }
-
-
