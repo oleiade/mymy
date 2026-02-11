@@ -112,7 +112,10 @@ pub async fn datetime() -> Datetime {
 
 #[derive(Serialize)]
 pub struct Datetime {
+    #[serde(flatten)]
     date: Date,
+
+    #[serde(flatten)]
     time: Time,
 }
 
