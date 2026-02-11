@@ -365,7 +365,7 @@ impl Everything {
                 rows.push((
                     "dns",
                     format!("server {}", server.order),
-                    server.address.clone(),
+                    server.address.to_string(),
                 ));
             }
         }

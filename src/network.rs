@@ -93,7 +93,7 @@ pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
 #[derive(Serialize)]
 pub struct DnsServer {
     /// The IP address of the DNS server.
-    pub address: String,
+    pub address: IpAddr,
 
     /// The 1-indexed ordinal position of the DNS server.
     pub order: usize,
@@ -133,7 +133,7 @@ pub fn list_dns_servers() -> Result<Vec<DnsServer>> {
     let nameservers = conf
         .name_servers()
         .iter()
-        .map(|ns| ns.socket_addr.ip().to_string())
+        .map(|ns| ns.socket_addr.ip())
         .unique()
         .enumerate()
         .map(|(i, address)| DnsServer {
