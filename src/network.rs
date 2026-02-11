@@ -186,7 +186,7 @@ pub fn interfaces() -> Result<Vec<Interface>> {
         .into_iter()
         .map(|(name, ip)| Interface {
             name,
-            ip: ip.to_string(),
+            ip,
         })
         .collect())
 }
@@ -198,7 +198,7 @@ pub struct Interface {
     pub(crate) name: String,
 
     /// The IP address of the network interface.
-    pub(crate) ip: String,
+    pub(crate) ip: IpAddr,
 }
 
 impl Display for Interface {

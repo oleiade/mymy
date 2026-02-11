@@ -371,7 +371,7 @@ impl Everything {
         }
         if let Some(interfaces) = &self.interfaces {
             for iface in interfaces {
-                rows.push(("interfaces", iface.name.clone(), iface.ip.clone()));
+                rows.push(("interfaces", iface.name.clone(), iface.ip.to_string()));
             }
         }
 
