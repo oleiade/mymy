@@ -2,6 +2,10 @@
 
 [![AGPL License](https://img.shields.io/badge/license-AGPL-blue.svg)](http://www.gnu.org/licenses/agpl-3.0)
 
+<p align="center">
+  <img src="static/demo.gif" alt="mymy demo" />
+</p>
+
 **mymy** is a user-friendly command-line application designed to help users gather information about their system quickly, intuitively, and easily. Instead of using multiple tools to access various system details, this single tool consolidates all the important information you need.
 
 ## Features
