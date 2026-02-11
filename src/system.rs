@@ -102,6 +102,7 @@ pub struct Cpu {
     pub core_count: usize,
 
     // The CPU's frequency in MHz
+    #[serde(rename = "frequency_mhz")]
     pub frequency: u64,
 }
 
