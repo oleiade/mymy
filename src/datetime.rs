@@ -49,7 +49,7 @@ pub async fn time() -> Time {
         Ok(sntp_time) => {
             t.offset = Some(sntp_time.clock_offset().as_secs_f64());
         }
-        Err(_) => eprintln!("warning: could not sync with NTP server (network timeout)"),
+        Err(e) => eprintln!("warning: could not sync with NTP server: {e}"),
     }
 
     t
