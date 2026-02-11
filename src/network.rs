@@ -46,11 +46,15 @@ impl Display for Ip {
 ///
 /// # Examples
 ///
-/// ```
-/// use std::net::IpAddr;
+/// ```no_run
+/// # use anyhow::Result;
+/// # async fn example() -> Result<()> {
+/// use mymy::network;
 ///
-/// let public_ip = ip::query_public_ip(ip::OPENDNS_SERVER_HOST, 53).unwrap();
+/// let public_ip = network::query_public_ip(network::OPENDNS_SERVER_HOST, 53).await?;
 /// println!("public ip: {}", public_ip);
+/// # Ok(())
+/// # }
 /// ```
 pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Result<IpAddr> {
     // Set up the resolver configuration

@@ -20,9 +20,15 @@ use crate::format::{Percentage, human_readable_size};
 ///
 /// # Examples
 ///
-/// ```
-/// let disks = storage::list_disks().unwrap();
+/// ```no_run
+/// # use anyhow::Result;
+/// # fn example() -> Result<()> {
+/// use mymy::storage;
+///
+/// let disks = storage::list_disks()?;
 /// println!("disks: {:?}", disks);
+/// # Ok(())
+/// # }
 /// ```
 pub fn list_disks() -> Result<Vec<DiskInfo>> {
     let disks = Disks::new_with_refreshed_list();
