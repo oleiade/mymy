@@ -648,30 +648,9 @@ async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> 
             }]))
         }
         Some(network::IpCategory::Any) | None => {
-            let mut ips = Vec::new();
-
-            // Try discovering public IP
-            match network::query_public_ip(open_dns_host, open_dns_port).await {
-                Ok(public_ip) => ips.push(network::Ip {
-                    category: network::IpCategory::Public,
-                    address: public_ip,
-                }),
-                Err(e) => eprintln!("warning: could not determine public IP: {e}"),
-            }
-
-            // And try discovering local IP
-            match local_ip_address::local_ip() {
-                Ok(local_ip) => ips.push(network::Ip {
-                    category: network::IpCategory::Local,
-                    address: local_ip,
-                }),
-                Err(e) => eprintln!("warning: could not determine local IP: {e}"),
-            }
-
-            if ips.is_empty() {
-                anyhow::bail!("could not determine any IP addresses");
-            }
-
+            let ips = gather_ips()
+                .await
+                .ok_or_else(|| anyhow::anyhow!("could not determine any IP addresses"))?;
             Ok(CommandResult::Ips(ips))
         }
     }
