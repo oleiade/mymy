@@ -38,7 +38,7 @@ pub fn list_disks() -> Result<Vec<DiskInfo>> {
 
             Ok(DiskInfo {
                 name: name.to_string(),
-                type_: format!("{:?}", disk.kind()),
+                type_: disk.kind().to_string(),
                 total_space: disk.total_space(),
                 free_space: disk.available_space(),
             })
