@@ -27,7 +27,7 @@ pub fn human_readable_size(bytes: u64) -> String {
 }
 
 pub struct Percentage {
-    pub tenths: u64,
+    pub(crate) tenths: u64,
 }
 
 impl Percentage {
