@@ -168,19 +168,29 @@ Example:
     Architecture,
 
     #[command(name = "interfaces")]
-    #[command(about = "Display your system's network interfaces")]
+    #[command(about = "Display your system's network interfaces (routable addresses only)")]
     #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "List all the network interfaces configured on your system, presented in the
-order they are used.
+        long_about = "List the network interfaces configured on your system.
 
-Example:
+Only interfaces with routable addresses are shown by default;
+loopback (127.0.0.1, ::1) and link-local (169.254.x.x, fe80::...)
+entries are hidden. Use --all to include them.
+
+Examples:
   $ my interfaces
+  en0\t192.168.1.42
+
+  $ my interfaces --all
   en0\t192.168.1.42
   en0\tfe80::1a2b:3c4d:5e6f:7890
   lo0\t127.0.0.1"
     )]
-    Interfaces,
+    Interfaces {
+        /// Show all interfaces, including loopback and link-local
+        #[arg(long)]
+        all: bool,
+    },
 
     #[command(name = "disks")]
     #[command(about = "Display your system's disks")]
@@ -595,7 +605,7 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
         Commands::DeviceName => handle_device_name(),
         Commands::Os => handle_os_command(),
         Commands::Architecture => Ok(handle_architecture()),
-        Commands::Interfaces => handle_interfaces(),
+        Commands::Interfaces { all } => handle_interfaces(*all),
         Commands::Disks => handle_disks(),
         Commands::Cpu => handle_cpu(),
         Commands::Ram => Ok(handle_ram()),
@@ -676,9 +686,12 @@ fn handle_architecture() -> CommandResult {
     CommandResult::Architecture(system::architecture())
 }
 
-fn handle_interfaces() -> Result<CommandResult> {
-    let interfaces =
+fn handle_interfaces(show_all: bool) -> Result<CommandResult> {
+    let mut interfaces =
         network::interfaces().with_context(|| "listing the system's network interfaces failed")?;
+    if !show_all {
+        interfaces.retain(network::is_default_visible);
+    }
     Ok(CommandResult::Interfaces(interfaces))
 }
 
@@ -748,7 +761,11 @@ async fn handle_everything() -> CommandResult {
     let interfaces = warn_on_err(
         network::interfaces().context("listing network interfaces"),
         "network interfaces",
-    );
+    )
+    .map(|mut ifaces| {
+        ifaces.retain(network::is_default_visible);
+        ifaces
+    });
     let disks = warn_on_err(storage::list_disks().context("listing disks"), "disks");
     let cpu = warn_on_err(system::cpus().context("listing CPUs"), "cpu");
     let ram = system::ram();

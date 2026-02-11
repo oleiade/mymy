@@ -210,3 +210,18 @@ impl Display for Interface {
         write!(f, "{}\t{}", self.name, self.ip)
     }
 }
+
+/// Whether an interface entry should be shown in the default (filtered) view.
+///
+/// Hides loopback and link-local addresses. Interfaces that only carry
+/// such addresses effectively disappear from the output.
+pub const fn is_default_visible(iface: &Interface) -> bool {
+    if iface.ip.is_loopback() {
+        return false;
+    }
+
+    match iface.ip {
+        IpAddr::V4(v4) => !v4.is_link_local(),
+        IpAddr::V6(v6) => !v6.is_unicast_link_local(),
+    }
+}
