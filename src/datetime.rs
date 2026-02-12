@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::time::Duration;
 
-use chrono::{DateTime, Datelike, Local, Timelike};
+use chrono::{DateTime, Datelike, Local, NaiveDate, Timelike, Weekday};
 use colored::Colorize;
 use rsntp::AsyncSntpClient;
 use serde::Serialize;
@@ -19,6 +19,8 @@ pub struct Date {
     month_name: String,
     year: i32,
     week_number: u32,
+    #[serde(skip)]
+    weeks_in_year: u32,
 }
 
 impl Display for Date {
@@ -26,18 +28,27 @@ impl Display for Date {
         write!(f, "{}", self.day_name)?;
         write!(f, ", {} {}", self.day_number, self.month_name)?;
         write!(f, ", {}", self.year)?;
-        write!(f, ", week {}", self.week_number)
+        write!(f, ", week {}/{}", self.week_number, self.weeks_in_year)
     }
 }
 
 impl From<DateTime<Local>> for Date {
     fn from(dt: DateTime<Local>) -> Self {
+        let iso_year = dt.iso_week().year();
+        let weeks_in_year =
+            if NaiveDate::from_isoywd_opt(iso_year, 53, Weekday::Mon).is_some() {
+                53
+            } else {
+                52
+            };
+
         Self {
             day_name: dt.format("%A").to_string(),
             day_number: dt.day(),
             month_name: dt.format("%B").to_string(),
             year: dt.year(),
             week_number: dt.iso_week().week(),
+            weeks_in_year,
         }
     }
 }
