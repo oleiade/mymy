@@ -175,8 +175,7 @@ Example:
     #[command(name = "interfaces")]
     #[command(about = "Display your system's network interfaces (routable addresses only)")]
     #[command(verbatim_doc_comment)]
-    #[command(
-        long_about = "List the network interfaces configured on your system.
+    #[command(long_about = "List the network interfaces configured on your system.
 
 Only interfaces with routable addresses are shown by default;
 loopback (127.0.0.1, ::1) and link-local (169.254.x.x, fe80::...)
@@ -189,8 +188,7 @@ Examples:
   $ my interfaces --all
   en0\t192.168.1.42
   en0\tfe80::1a2b:3c4d:5e6f:7890
-  lo0\t127.0.0.1"
-    )]
+  lo0\t127.0.0.1")]
     Interfaces {
         /// Show all interfaces, including loopback and link-local
         #[arg(long)]
@@ -596,14 +594,19 @@ impl Display for CommandResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Ips(wrapper) => {
-                let ips = wrapper.ips.iter().map(ToString::to_string).collect::<Vec<String>>();
+                let ips = wrapper
+                    .ips
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>();
                 write!(f, "{}", ips.join("\n"))
             }
             Self::Dns(wrapper) => {
                 write!(
                     f,
                     "{}",
-                    wrapper.dns_servers
+                    wrapper
+                        .dns_servers
                         .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<String>>()
@@ -622,7 +625,8 @@ impl Display for CommandResult {
                 write!(
                     f,
                     "{}",
-                    wrapper.interfaces
+                    wrapper
+                        .interfaces
                         .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<String>>()
@@ -633,7 +637,8 @@ impl Display for CommandResult {
                 write!(
                     f,
                     "{}",
-                    wrapper.disks
+                    wrapper
+                        .disks
                         .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<String>>()
@@ -698,7 +703,9 @@ async fn handle_datetime() -> CommandResult {
 
 fn handle_dns() -> Result<CommandResult> {
     let servers = network::list_dns_servers().context("listing the system's dns servers failed")?;
-    Ok(CommandResult::Dns(DnsServers { dns_servers: servers }))
+    Ok(CommandResult::Dns(DnsServers {
+        dns_servers: servers,
+    }))
 }
 
 async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> {
@@ -714,19 +721,23 @@ async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> 
                         "looking up public ip failed; reason: querying dns server {open_dns_host} on port {open_dns_port} failed"
                     )
                 })?;
-            Ok(CommandResult::Ips(Ips { ips: vec![network::Ip {
-                category: network::IpCategory::Public,
-                address: public_ip,
-            }]}))
+            Ok(CommandResult::Ips(Ips {
+                ips: vec![network::Ip {
+                    category: network::IpCategory::Public,
+                    address: public_ip,
+                }],
+            }))
         }
         Some(network::IpCategory::Local) => {
             let local_ip = local_ip_address::local_ip().with_context(
                 || "looking up local ip failed; reason: querying local ip address failed",
             )?;
-            Ok(CommandResult::Ips(Ips { ips: vec![network::Ip {
-                category: network::IpCategory::Local,
-                address: local_ip,
-            }]}))
+            Ok(CommandResult::Ips(Ips {
+                ips: vec![network::Ip {
+                    category: network::IpCategory::Local,
+                    address: local_ip,
+                }],
+            }))
         }
         Some(network::IpCategory::Any) | None => {
             let ips = gather_ips()

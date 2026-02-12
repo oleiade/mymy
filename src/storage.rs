@@ -6,7 +6,7 @@ use itertools::Itertools;
 use serde::Serialize;
 use sysinfo::Disks;
 
-use crate::format::{human_readable_size, Percentage};
+use crate::format::{Percentage, human_readable_size};
 
 /// List all disks and their information
 ///

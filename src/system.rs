@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::format::{human_readable_size, Percentage};
+use crate::format::{Percentage, human_readable_size};
 use anyhow::{Context, Result};
 use colored::Colorize;
 use serde::Serialize;

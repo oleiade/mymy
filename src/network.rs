@@ -188,10 +188,7 @@ pub fn interfaces() -> Result<Vec<Interface>> {
 
     Ok(netifs
         .into_iter()
-        .map(|(name, ip)| Interface {
-            name,
-            ip,
-        })
+        .map(|(name, ip)| Interface { name, ip })
         .collect())
 }
 

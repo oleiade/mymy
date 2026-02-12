@@ -35,12 +35,11 @@ impl Display for Date {
 impl From<DateTime<Local>> for Date {
     fn from(dt: DateTime<Local>) -> Self {
         let iso_year = dt.iso_week().year();
-        let weeks_in_year =
-            if NaiveDate::from_isoywd_opt(iso_year, 53, Weekday::Mon).is_some() {
-                53
-            } else {
-                52
-            };
+        let weeks_in_year = if NaiveDate::from_isoywd_opt(iso_year, 53, Weekday::Mon).is_some() {
+            53
+        } else {
+            52
+        };
 
         Self {
             day_name: dt.format("%A").to_string(),
