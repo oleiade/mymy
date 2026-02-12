@@ -69,32 +69,31 @@ pub struct DiskInfo {
 
 impl Display for DiskInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let free_space = human_readable_size(self.free_space);
-        let total_space = human_readable_size(self.total_space);
+        let used_space = self.total_space - self.free_space;
+        let used = human_readable_size(used_space);
+        let total = human_readable_size(self.total_space);
 
-        let percentage = Percentage::from_ratio(self.free_space, self.total_space);
+        let percentage = Percentage::from_ratio(used_space, self.total_space);
         let percentage_display = format!("{percentage}");
 
-        let (colored_free_space, color_free_percentage, indicator) = match percentage.tenths {
-            _ if percentage.tenths < 100 => {
-                (free_space.red(), percentage_display.as_str().red(), " !")
-            }
-            _ if percentage.tenths < 200 => (
-                free_space.yellow(),
+        let (used_colored, used_percentage_colored, indicator) = match percentage.tenths {
+            p if p > 900 => (used.red(), percentage_display.as_str().red(), " !"),
+            p if p > 700 => (
+                used.yellow(),
                 percentage_display.as_str().yellow(),
                 " \u{25b2}",
             ),
-            _ => (free_space.green(), percentage_display.as_str().green(), ""),
+            _ => (used.green(), percentage_display.as_str().green(), ""),
         };
 
         write!(
             f,
-            "{}, {}, {} free of {} ({}% free{})",
+            "{}, {}, {} used of {} ({}%{})",
             self.name.cyan().bold(),
             self.type_.bright_white(),
-            colored_free_space,
-            total_space,
-            color_free_percentage,
+            used_colored,
+            total,
+            used_percentage_colored,
             indicator,
         )
     }
