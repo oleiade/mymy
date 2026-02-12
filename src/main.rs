@@ -31,6 +31,10 @@ pub struct Cli {
 
     #[arg(short, long, value_enum, default_value_t = OutputFormat::Text)]
     format: OutputFormat,
+
+    /// When to use terminal colors
+    #[arg(short, long, value_enum, default_value_t = ColorMode::Auto)]
+    color: ColorMode,
 }
 
 #[derive(Debug, Subcommand)]
@@ -272,6 +276,13 @@ async fn main() -> Result<()> {
 
     // Parse the CLI arguments
     let cli = Cli::parse();
+
+    // Apply color mode before any output
+    match cli.color {
+        ColorMode::Always => colored::control::set_override(true),
+        ColorMode::Never => colored::control::set_override(false),
+        ColorMode::Auto => {} // colored crate auto-detects TTY / NO_COLOR / FORCE_COLOR
+    }
 
     // Generate shell completions and exit early (no CommandResult needed)
     if let Some(Commands::Completions { shell }) = &cli.command {
@@ -640,6 +651,16 @@ impl Display for CommandResult {
 enum OutputFormat {
     Json,
     Text,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum ColorMode {
+    /// Detect automatically (default; respects NO_COLOR / FORCE_COLOR and TTY)
+    Auto,
+    /// Always emit ANSI colors
+    Always,
+    /// Never emit ANSI colors
+    Never,
 }
 
 async fn execute_command(command: &Commands) -> Result<CommandResult> {
