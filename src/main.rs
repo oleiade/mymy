@@ -512,13 +512,35 @@ fn write_vec_field<T: Display>(
 /// `CommandResult` holds the result of a command.
 ///
 /// This is used to facilitate factorizing the command execution,
+/// Wrapper structs for list-typed commands, ensuring consistent JSON output
+/// with a named key (e.g. `{"ips": [...]}` instead of a bare array).
+#[derive(Serialize)]
+struct Ips {
+    ips: Vec<network::Ip>,
+}
+
+#[derive(Serialize)]
+struct DnsServers {
+    dns_servers: Vec<network::DnsServer>,
+}
+
+#[derive(Serialize)]
+struct Interfaces {
+    interfaces: Vec<network::Interface>,
+}
+
+#[derive(Serialize)]
+struct Disks {
+    disks: Vec<storage::DiskInfo>,
+}
+
 /// and allow handling the serializing of the result into the desired output format
 /// in a single place.
 #[derive(Serialize)]
 #[serde(untagged)]
 enum CommandResult {
-    Ips(Vec<network::Ip>),
-    Dns(Vec<network::DnsServer>),
+    Ips(Ips),
+    Dns(DnsServers),
     Date(datetime::Date),
     Time(datetime::Time),
     Datetime(datetime::Datetime),
@@ -527,8 +549,8 @@ enum CommandResult {
     DeviceName(system::DeviceName),
     Os(system::OperatingSystem),
     Architecture(system::Architecture),
-    Interfaces(Vec<network::Interface>),
-    Disks(Vec<storage::DiskInfo>),
+    Interfaces(Interfaces),
+    Disks(Disks),
     Cpu(system::Cpu),
     Ram(system::Ram),
     Everything(Box<Everything>),
@@ -537,15 +559,16 @@ enum CommandResult {
 impl Display for CommandResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Ips(ips) => {
-                let ips = ips.iter().map(ToString::to_string).collect::<Vec<String>>();
+            Self::Ips(wrapper) => {
+                let ips = wrapper.ips.iter().map(ToString::to_string).collect::<Vec<String>>();
                 write!(f, "{}", ips.join("\n"))
             }
-            Self::Dns(dns) => {
+            Self::Dns(wrapper) => {
                 write!(
                     f,
                     "{}",
-                    dns.iter()
+                    wrapper.dns_servers
+                        .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<String>>()
                         .join("\n")
@@ -559,22 +582,22 @@ impl Display for CommandResult {
             Self::DeviceName(device_name) => device_name.fmt(f),
             Self::Os(os) => os.fmt(f),
             Self::Architecture(architecture) => architecture.fmt(f),
-            Self::Interfaces(interfaces) => {
+            Self::Interfaces(wrapper) => {
                 write!(
                     f,
                     "{}",
-                    interfaces
+                    wrapper.interfaces
                         .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<String>>()
                         .join("\n")
                 )
             }
-            Self::Disks(disks) => {
+            Self::Disks(wrapper) => {
                 write!(
                     f,
                     "{}",
-                    disks
+                    wrapper.disks
                         .iter()
                         .map(ToString::to_string)
                         .collect::<Vec<String>>()
@@ -628,7 +651,7 @@ async fn handle_datetime() -> CommandResult {
 
 fn handle_dns() -> Result<CommandResult> {
     let servers = network::list_dns_servers().context("listing the system's dns servers failed")?;
-    Ok(CommandResult::Dns(servers))
+    Ok(CommandResult::Dns(DnsServers { dns_servers: servers }))
 }
 
 async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> {
@@ -644,25 +667,25 @@ async fn handle_ips(only: Option<network::IpCategory>) -> Result<CommandResult> 
                         "looking up public ip failed; reason: querying dns server {open_dns_host} on port {open_dns_port} failed"
                     )
                 })?;
-            Ok(CommandResult::Ips(vec![network::Ip {
+            Ok(CommandResult::Ips(Ips { ips: vec![network::Ip {
                 category: network::IpCategory::Public,
                 address: public_ip,
-            }]))
+            }]}))
         }
         Some(network::IpCategory::Local) => {
             let local_ip = local_ip_address::local_ip().with_context(
                 || "looking up local ip failed; reason: querying local ip address failed",
             )?;
-            Ok(CommandResult::Ips(vec![network::Ip {
+            Ok(CommandResult::Ips(Ips { ips: vec![network::Ip {
                 category: network::IpCategory::Local,
                 address: local_ip,
-            }]))
+            }]}))
         }
         Some(network::IpCategory::Any) | None => {
             let ips = gather_ips()
                 .await
                 .ok_or_else(|| anyhow::anyhow!("could not determine any IP addresses"))?;
-            Ok(CommandResult::Ips(ips))
+            Ok(CommandResult::Ips(Ips { ips }))
         }
     }
 }
@@ -693,12 +716,12 @@ fn handle_interfaces(show_all: bool) -> Result<CommandResult> {
     if !show_all {
         interfaces.retain(network::is_default_visible);
     }
-    Ok(CommandResult::Interfaces(interfaces))
+    Ok(CommandResult::Interfaces(Interfaces { interfaces }))
 }
 
 fn handle_disks() -> Result<CommandResult> {
     let disks = storage::list_disks().context("listing the disks failed")?;
-    Ok(CommandResult::Disks(disks))
+    Ok(CommandResult::Disks(Disks { disks }))
 }
 
 fn handle_cpu() -> Result<CommandResult> {
