@@ -6,8 +6,9 @@ use rsntp::AsyncSntpClient;
 use serde::Serialize;
 
 /// Returns the system date.
-pub fn date() -> Date {
-    Local::now().into()
+pub fn date(now: Option<DateTime<Local>>) -> Date {
+    let now = now.unwrap_or(Local::now());
+    Date::from(now)
 }
 
 #[derive(Serialize)]
@@ -41,8 +42,8 @@ impl From<DateTime<Local>> for Date {
 }
 
 /// Returns the system time.
-pub async fn time() -> Time {
-    let now = Local::now();
+pub async fn time(now: Option<DateTime<Local>>) -> Time {
+    let now = now.unwrap_or_else(|| Local::now());
     let mut t = Time::from(now);
 
     match AsyncSntpClient::new().synchronize("pool.ntp.org").await {
@@ -104,8 +105,9 @@ impl From<DateTime<Local>> for Time {
 
 /// Returns the system date and time.
 pub async fn datetime() -> Datetime {
-    let date = date();
-    let time = time().await;
+    let now = Local::now();
+    let date = date(Some(now));
+    let time = time(Some(now)).await;
 
     Datetime { date, time }
 }
