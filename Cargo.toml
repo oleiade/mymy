@@ -21,6 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.98"
+clap_complete = "4.5.66"
 colored = "3.0.0"
 hickory-proto = "0.25"
 human-panic = "2.0.2"

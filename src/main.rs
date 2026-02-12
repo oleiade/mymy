@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter, Write as _};
 
 use anyhow::{Context, Result};
 use chrono::Local;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use human_panic::setup_panic;
 use serde::Serialize;
@@ -245,6 +245,24 @@ Examples:
   $ my --format json everything"
     )]
     Everything,
+
+    #[command(name = "completions")]
+    #[command(about = "Generate shell completions")]
+    #[command(verbatim_doc_comment)]
+    #[command(
+        long_about = "Generate shell completion scripts for the specified shell.
+
+Supported shells: bash, zsh, fish, elvish, powershell.
+
+Examples:
+  $ my completions bash > ~/.bash_completion.d/my
+  $ my completions zsh > ~/.zfunc/_my
+  $ my completions fish > ~/.config/fish/completions/my.fish"
+    )]
+    Completions {
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
+    },
 }
 
 #[tokio::main]
@@ -254,6 +272,13 @@ async fn main() -> Result<()> {
 
     // Parse the CLI arguments
     let cli = Cli::parse();
+
+    // Generate shell completions and exit early (no CommandResult needed)
+    if let Some(Commands::Completions { shell }) = &cli.command {
+        let mut cmd = Cli::command();
+        clap_complete::generate(*shell, &mut cmd, "my", &mut std::io::stdout());
+        return Ok(());
+    }
 
     // Execute the appropriate command
     if let Some(command) = &cli.command {
@@ -634,6 +659,7 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
         Commands::Cpu => handle_cpu(),
         Commands::Ram => Ok(handle_ram()),
         Commands::Everything => Ok(handle_everything().await),
+        Commands::Completions { .. } => unreachable!("handled before execute_command"),
     }
 }
 
