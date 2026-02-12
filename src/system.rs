@@ -98,8 +98,11 @@ pub struct Cpu {
     // The CPU's brand
     pub brand: String,
 
-    // The CPU's name
+    // The number of physical CPU cores
     pub core_count: usize,
+
+    // The number of logical CPUs (hardware threads)
+    pub thread_count: usize,
 
     // The CPU's frequency in MHz
     #[serde(rename = "frequency_mhz")]
@@ -112,9 +115,10 @@ impl Display for Cpu {
         let ghz = self.frequency as f64 / 1000.0;
         write!(
             f,
-            "{}, {} cores running at {} GHz",
+            "{}, {} cores ({} threads) running at {} GHz",
             self.brand.bold(),
             format!("{}", self.core_count).cyan(),
+            format!("{}", self.thread_count).cyan(),
             format!("{ghz:.1}").green() // "2.4 GHz"
         )
     }
@@ -130,9 +134,12 @@ pub fn cpus() -> Result<Cpu> {
         .first()
         .context("no CPU information available from sysinfo")?;
 
+    let thread_count = cpus.len();
+
     Ok(Cpu {
         brand: reference_cpu.brand().to_string(),
-        core_count: cpus.len(),
+        core_count: System::physical_core_count().unwrap_or(thread_count),
+        thread_count,
         frequency: reference_cpu.frequency(),
     })
 }

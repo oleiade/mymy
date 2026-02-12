@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter, Write as _};
 
 use anyhow::{Context, Result};
+use chrono::Local;
 use clap::{Parser, Subcommand, ValueEnum};
 use colored::Colorize;
 use human_panic::setup_panic;
@@ -614,11 +615,11 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
 }
 
 fn handle_date() -> CommandResult {
-    CommandResult::Date(datetime::date())
+    CommandResult::Date(datetime::date(Some(Local::now())))
 }
 
 async fn handle_time() -> CommandResult {
-    CommandResult::Time(datetime::time().await)
+    CommandResult::Time(datetime::time(Some(Local::now())).await)
 }
 
 async fn handle_datetime() -> CommandResult {
@@ -744,11 +745,13 @@ async fn gather_ips() -> Option<Vec<network::Ip>> {
 }
 
 async fn handle_everything() -> CommandResult {
+    let now = Local::now();
+
     // Async operations run concurrently
-    let (ips, time) = tokio::join!(gather_ips(), datetime::time());
+    let (ips, time) = tokio::join!(gather_ips(), datetime::time(Some(now)));
 
     // Sync operations
-    let date = datetime::date();
+    let date = datetime::date(Some(now));
     let dns = warn_on_err(
         network::list_dns_servers().context("listing DNS servers"),
         "dns servers",
