@@ -655,7 +655,7 @@ enum OutputFormat {
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum ColorMode {
-    /// Detect automatically (default; respects NO_COLOR / FORCE_COLOR and TTY)
+    /// Detect automatically (default; respects `NO_COLOR` / `FORCE_COLOR` and `TTY`)
     Auto,
     /// Always emit ANSI colors
     Always,
