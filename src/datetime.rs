@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::time::Duration;
 
 use chrono::{DateTime, Datelike, Local, Timelike};
 use colored::Colorize;
@@ -46,11 +47,13 @@ pub async fn time(now: Option<DateTime<Local>>) -> Time {
     let now = now.unwrap_or_else(|| Local::now());
     let mut t = Time::from(now);
 
-    match AsyncSntpClient::new().synchronize("pool.ntp.org").await {
-        Ok(sntp_time) => {
+    let client = AsyncSntpClient::new();
+    match tokio::time::timeout(Duration::from_secs(5), client.synchronize("pool.ntp.org")).await {
+        Ok(Ok(sntp_time)) => {
             t.offset = Some(sntp_time.clock_offset().as_secs_f64());
         }
-        Err(e) => eprintln!("warning: could not sync with NTP server: {e}"),
+        Ok(Err(e)) => eprintln!("warning: could not sync with NTP server: {e}"),
+        Err(_) => eprintln!("warning: NTP query timed out"),
     }
 
     t
