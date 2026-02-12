@@ -82,11 +82,19 @@ impl Display for Time {
 
         if let Some(offset) = self.offset {
             let sign = if offset >= 0.0 { '+' } else { '-' };
+            let label = match offset.abs() {
+                d if d < 0.5 => "in sync",
+                d if d < 2.0 => "slightly off",
+                _ => "significantly off",
+            };
             write!(
                 f,
-                "\n{}{} seconds",
+                "\n{} {}{}{} {}",
+                "clock offset".dimmed(),
                 sign,
-                format!("{:.4}", offset.abs()).bright_magenta()
+                format!("{:.4}", offset.abs()).bright_magenta(),
+                "s".bright_magenta(),
+                format!("({label})").bright_cyan()
             )?;
         }
 
