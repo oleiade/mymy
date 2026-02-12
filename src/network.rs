@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Ip {
     /// The IP address.
-    #[serde(rename(serialize = "ip", deserialize = "ip"))]
+    #[serde(rename = "ip")]
     pub address: IpAddr,
 
     /// The category of the IP address.
