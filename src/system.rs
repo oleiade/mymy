@@ -70,7 +70,11 @@ impl Display for OperatingSystem {
 
 /// returns the operating system the system is running
 pub fn os() -> Result<OperatingSystem> {
-    let name = whoami::distro()?;
+    let name = match System::long_os_version() {
+        Some(v) if !v.to_lowercase().contains("unknown") => v,
+        _ => whoami::distro()?,
+    };
+
     Ok(OperatingSystem { name })
 }
 

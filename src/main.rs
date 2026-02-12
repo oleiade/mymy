@@ -622,13 +622,19 @@ impl Display for CommandResult {
             Self::Os(os) => os.fmt(f),
             Self::Architecture(architecture) => architecture.fmt(f),
             Self::Interfaces(wrapper) => {
+                let max_name_width = wrapper
+                    .interfaces
+                    .iter()
+                    .map(|i| i.name.len())
+                    .max()
+                    .unwrap_or(0);
                 write!(
                     f,
                     "{}",
                     wrapper
                         .interfaces
                         .iter()
-                        .map(ToString::to_string)
+                        .map(|i| format!("{i:max_name_width$}"))
                         .collect::<Vec<String>>()
                         .join("\n")
                 )

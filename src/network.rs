@@ -204,7 +204,8 @@ pub struct Interface {
 
 impl Display for Interface {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\t{}", self.name, self.ip)
+        let width = f.width().unwrap_or(0);
+        write!(f, "{:<width$}  {}", self.name, self.ip, width = width)
     }
 }
 
