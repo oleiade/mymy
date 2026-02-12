@@ -8,7 +8,7 @@ use serde::Serialize;
 
 /// Returns the system date.
 pub fn date(now: Option<DateTime<Local>>) -> Date {
-    let now = now.unwrap_or(Local::now());
+    let now = now.unwrap_or_else(Local::now);
     Date::from(now)
 }
 
@@ -55,7 +55,7 @@ impl From<DateTime<Local>> for Date {
 
 /// Returns the system time.
 pub async fn time(now: Option<DateTime<Local>>) -> Time {
-    let now = now.unwrap_or_else(|| Local::now());
+    let now = now.unwrap_or_else(Local::now);
     let mut t = Time::from(now);
 
     let client = AsyncSntpClient::new();
