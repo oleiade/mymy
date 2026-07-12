@@ -85,7 +85,7 @@ weekday, day month, year, week number.
 
 Example:
   $ my date
-  Saturday, 8 April, 2023, week 14"
+  Saturday, 8 April, 2023, week 14/52"
     )]
     Date,
 
@@ -99,7 +99,7 @@ clock server, in a 24-hour human-readable format.
 Example:
   $ my time
   20:20:02 +02:00
-  +0.0672 seconds"
+  clock offset +0.0093s (in sync)"
     )]
     Time,
 
@@ -112,9 +112,9 @@ the central NTP clock server, in a human-readable format.
 
 Example:
   $ my datetime
-  Saturday, 8 April, 2023, week 14
-  20:20:02 UTC +02:00
-  +0.0684 seconds"
+  Saturday, 8 April, 2023, week 14/52
+  20:20:02 +02:00
+  clock offset +0.0093s (in sync)"
     )]
     Datetime,
 
@@ -187,12 +187,12 @@ entries are hidden. Use --all to include them.
 
 Examples:
   $ my interfaces
-  en0\t192.168.1.42
+  en0  192.168.1.42
 
   $ my interfaces --all
-  en0\t192.168.1.42
-  en0\tfe80::1a2b:3c4d:5e6f:7890
-  lo0\t127.0.0.1")]
+  en0  192.168.1.42
+  en0  fe80::1a2b:3c4d:5e6f:7890
+  lo0  127.0.0.1")]
     Interfaces {
         /// Show all interfaces, including loopback and link-local
         #[arg(long)]
@@ -203,12 +203,12 @@ Examples:
     #[command(about = "Display your system's disks")]
     #[command(verbatim_doc_comment)]
     #[command(
-        long_about = "List the disks installed on your system, showing name, type, free space,
-total capacity, and percentage of free space.
+        long_about = "List the disks installed on your system, showing name, type, used space,
+total capacity, and percentage used.
 
 Example:
   $ my disks
-  Macintosh HD, SSD, 142.50 GiB free of 460.43 GiB (30.9% free)"
+  Macintosh HD, SSD, 382.55 GiB used of 926.30 GiB (41.2%)"
     )]
     Disks,
 
@@ -220,7 +220,7 @@ Example:
 
 Example:
   $ my cpu
-  Apple M1 Pro, 10 cores running at 3.2 GHz"
+  Apple M1 Pro, 10 cores (10 threads) running at 3.2 GHz"
     )]
     Cpu,
 
