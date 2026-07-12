@@ -57,7 +57,7 @@ pub async fn time(now: Option<DateTime<Local>>) -> Time {
     let mut t = Time::from(now);
 
     let client = AsyncSntpClient::new();
-    match tokio::time::timeout(Duration::from_secs(5), client.synchronize("pool.ntp.org")).await {
+    match tokio::time::timeout(Duration::from_secs(2), client.synchronize("pool.ntp.org")).await {
         Ok(Ok(sntp_time)) => {
             t.offset = Some(sntp_time.clock_offset().as_secs_f64());
         }

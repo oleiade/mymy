@@ -64,7 +64,7 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
 
     let mut resolver_opts = ResolverOpts::default();
     resolver_opts.ndots = 1;
-    resolver_opts.timeout = std::time::Duration::from_secs(5);
+    resolver_opts.timeout = std::time::Duration::from_secs(2);
 
     // Create the resolver
     let resolver =
