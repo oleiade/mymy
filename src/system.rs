@@ -92,7 +92,7 @@ impl Display for Architecture {
 /// returns the architecture of the system
 pub fn architecture() -> Architecture {
     Architecture {
-        architecture: whoami::cpu_arch().to_string(),
+        architecture: std::env::consts::ARCH.to_string(),
     }
 }
 
