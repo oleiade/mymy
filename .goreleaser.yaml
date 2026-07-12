@@ -50,7 +50,7 @@ nfpms:
     homepage: https://github.com/oleiade/mymy
     maintainer: Théo Crevon <theo@crevon.me>
     description: Access the most common information about your system using a single command
-    license: MIT
+    license: AGPL-3.0-only
 
     section: utils
     priority: optional
@@ -77,7 +77,7 @@ brews:
     directory: Formula
     homepage: https://github.com/oleiade/mymy
     description: Access the most common information about your system using a single command
-    license: MIT
+    license: AGPL-3.0-only
     test: |
       system "#{bin}/my --version"
     install: |
