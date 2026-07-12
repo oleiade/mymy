@@ -41,6 +41,7 @@ pub struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     #[command(name = "ips")]
+    #[command(visible_alias = "ip")]
     #[command(about = "Display your IP addresses")]
     #[command(verbatim_doc_comment)]
     #[command(
@@ -162,6 +163,7 @@ Example:
     Os,
 
     #[command(name = "architecture")]
+    #[command(visible_alias = "arch")]
     #[command(about = "Display your system's CPU architecture")]
     #[command(verbatim_doc_comment)]
     #[command(
@@ -174,6 +176,7 @@ Example:
     Architecture,
 
     #[command(name = "interfaces")]
+    #[command(visible_alias = "iface")]
     #[command(about = "Display your system's network interfaces (routable addresses only)")]
     #[command(verbatim_doc_comment)]
     #[command(long_about = "List the network interfaces configured on your system.
@@ -234,6 +237,7 @@ Example:
     Ram,
 
     #[command(name = "everything")]
+    #[command(visible_alias = "all")]
     #[command(about = "Display a full snapshot of your system")]
     #[command(verbatim_doc_comment)]
     #[command(
