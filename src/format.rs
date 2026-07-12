@@ -48,3 +48,39 @@ impl Display for Percentage {
         write!(f, "{}.{}", self.tenths / 10, self.tenths % 10)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Percentage, human_readable_size};
+
+    #[test]
+    fn human_readable_size_bytes() {
+        assert_eq!(human_readable_size(0), "0 B");
+        assert_eq!(human_readable_size(1023), "1023 B");
+    }
+
+    #[test]
+    fn human_readable_size_kib() {
+        assert_eq!(human_readable_size(1536), "1.50 KiB");
+    }
+
+    #[test]
+    fn human_readable_size_mib() {
+        assert_eq!(human_readable_size(1024 * 1024 * 3 / 2), "1.50 MiB");
+    }
+
+    #[test]
+    fn human_readable_size_gib() {
+        assert_eq!(human_readable_size(1024 * 1024 * 1024 * 3 / 2), "1.50 GiB");
+    }
+
+    #[test]
+    fn percentage_from_ratio() {
+        assert_eq!(Percentage::from_ratio(578, 1000).to_string(), "57.8");
+    }
+
+    #[test]
+    fn percentage_from_ratio_zero_denominator() {
+        assert_eq!(Percentage::from_ratio(1, 0).to_string(), "0.0");
+    }
+}

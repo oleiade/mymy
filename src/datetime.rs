@@ -31,14 +31,19 @@ impl Display for Date {
     }
 }
 
+/// Returns the number of ISO weeks in the given ISO year (52 or 53).
+const fn weeks_in_iso_year(year: i32) -> u32 {
+    if NaiveDate::from_isoywd_opt(year, 53, Weekday::Mon).is_some() {
+        53
+    } else {
+        52
+    }
+}
+
 impl From<DateTime<Local>> for Date {
     fn from(dt: DateTime<Local>) -> Self {
         let iso_year = dt.iso_week().year();
-        let weeks_in_year = if NaiveDate::from_isoywd_opt(iso_year, 53, Weekday::Mon).is_some() {
-            53
-        } else {
-            52
-        };
+        let weeks_in_year = weeks_in_iso_year(iso_year);
 
         Self {
             day_name: dt.format("%A").to_string(),
@@ -145,5 +150,20 @@ impl Display for Datetime {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.date)?;
         write!(f, "\n{}", self.time)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::weeks_in_iso_year;
+
+    #[test]
+    fn weeks_in_iso_year_53_week_year() {
+        assert_eq!(weeks_in_iso_year(2026), 53);
+    }
+
+    #[test]
+    fn weeks_in_iso_year_52_week_year() {
+        assert_eq!(weeks_in_iso_year(2025), 52);
     }
 }
