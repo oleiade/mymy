@@ -69,7 +69,7 @@ pub struct DiskInfo {
 
 impl Display for DiskInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let used_space = self.total_space - self.free_space;
+        let used_space = self.total_space.saturating_sub(self.free_space);
         let used = human_readable_size(used_space);
         let total = human_readable_size(self.total_space);
 
