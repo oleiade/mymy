@@ -15,6 +15,7 @@ mod system;
 
 #[derive(Debug, Parser)]
 #[command(name = "my")]
+#[command(version)]
 #[command(about = "Get essential information about your device")]
 #[command(
     long_about = "Easily access important details about your device, such as IP addresses, DNS servers, date, time, and more."
