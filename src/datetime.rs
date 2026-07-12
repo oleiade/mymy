@@ -19,7 +19,6 @@ pub struct Date {
     month_name: String,
     year: i32,
     week_number: u32,
-    #[serde(skip)]
     weeks_in_year: u32,
 }
 
