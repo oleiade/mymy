@@ -28,8 +28,31 @@ impl Display for Ip {
     }
 }
 
+/// Builds a resolver that queries a single DNS server host on the given port.
+fn build_resolver(
+    dns_server_host: &str,
+    dns_server_port: u16,
+) -> Result<Resolver<TokioConnectionProvider>> {
+    let dns_server_addr = SocketAddr::new(dns_server_host.parse()?, dns_server_port);
+    let nameserver_config = NameServerConfig::new(dns_server_addr, Protocol::Udp);
+    let resolver_config = ResolverConfig::from_parts(None, vec![], vec![nameserver_config]);
+
+    let mut resolver_opts = ResolverOpts::default();
+    resolver_opts.ndots = 1;
+    resolver_opts.timeout = std::time::Duration::from_secs(2);
+
+    Ok(
+        Resolver::builder_with_config(resolver_config, TokioConnectionProvider::default())
+            .with_options(resolver_opts)
+            .build(),
+    )
+}
+
 /// Queries the public IP address from the provided dns server.
-/// Only an IPv4 address is returned.
+///
+/// Tries an IPv4 lookup against `dns_server_host` first. If that fails
+/// (for example on an IPv6-only network), falls back to an IPv6 lookup
+/// against the OpenDNS IPv6 resolver.
 ///
 /// # Arguments
 ///
@@ -38,11 +61,12 @@ impl Display for Ip {
 ///
 /// # Returns
 ///
-/// The public IP address.
+/// The public IP address, either IPv4 or IPv6.
 ///
 /// # Errors
 ///
-/// If the DNS server host cannot be parsed, or if the DNS server cannot be queried.
+/// If the DNS server host cannot be parsed, or if both the IPv4 and IPv6
+/// lookups fail.
 ///
 /// # Examples
 ///
@@ -57,30 +81,34 @@ impl Display for Ip {
 /// # }
 /// ```
 pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Result<IpAddr> {
-    // Set up the resolver configuration
-    let dns_server_addr = SocketAddr::new(dns_server_host.parse()?, dns_server_port);
-    let nameserver_config = NameServerConfig::new(dns_server_addr, Protocol::Udp);
-    let resolver_config = ResolverConfig::from_parts(None, vec![], vec![nameserver_config]);
+    let resolver = build_resolver(dns_server_host, dns_server_port)?;
 
-    let mut resolver_opts = ResolverOpts::default();
-    resolver_opts.ndots = 1;
-    resolver_opts.timeout = std::time::Duration::from_secs(2);
+    match resolver.ipv4_lookup("myip.opendns.com").await {
+        Ok(ipv4_response) => {
+            let ipv4 = ipv4_response
+                .iter()
+                .next()
+                .context("public IP lookup returned no IPv4 records")?;
+            Ok(IpAddr::V4(**ipv4))
+        }
+        Err(ipv4_err) => {
+            let ipv6_resolver = build_resolver(OPENDNS_SERVER_HOST_V6, dns_server_port)?;
+            let ipv6_response = ipv6_resolver.ipv6_lookup("myip.opendns.com").await;
 
-    // Create the resolver
-    let resolver =
-        Resolver::builder_with_config(resolver_config, TokioConnectionProvider::default())
-            .with_options(resolver_opts)
-            .build();
-
-    // Query the public IP address from the OpenDNS server
-    let ipv4_response = resolver.ipv4_lookup("myip.opendns.com").await?;
-
-    let ipv4 = ipv4_response
-        .iter()
-        .next()
-        .context("public IP lookup returned no IPv4 records")?;
-
-    Ok(IpAddr::V4(**ipv4))
+            match ipv6_response {
+                Ok(response) => {
+                    let ipv6 = response
+                        .iter()
+                        .next()
+                        .context("public IP lookup returned no IPv6 records")?;
+                    Ok(IpAddr::V6(**ipv6))
+                }
+                Err(ipv6_err) => Err(ipv4_err).context(format!(
+                    "IPv4 public IP lookup failed and IPv6 fallback also failed: {ipv6_err}"
+                )),
+            }
+        }
+    }
 }
 
 /// The default DNS server port.
@@ -92,6 +120,12 @@ pub const DNS_DEFAULT_PORT: u16 = 53;
 ///
 /// This constant is used as a default to query the public IP address
 pub const OPENDNS_SERVER_HOST: &str = "208.67.222.222";
+
+/// The openDNS server host, IPv6 variant.
+///
+/// This constant is used as a fallback to query the public IP address
+/// when the IPv4 lookup fails, for example on IPv6-only networks.
+pub const OPENDNS_SERVER_HOST_V6: &str = "2620:119:35::35";
 
 /// A DNS server with its address and ordinal position.
 #[derive(Serialize)]
