@@ -30,14 +30,18 @@ The main commands available in mymy are:
 - `os`: Identify the operating system your system is running.
 - `ram`: Get information about your system's RAM, including its total capacity and usage.
 - `architecture`: Determine your CPU's architecture.
-- `interfaces`: List all the network interfaces configured on your system.
+- `interfaces`: List all the network interfaces configured on your system (routable addresses only by default; use
+  `--all` to include loopback and link-local).
 - `everything`: Display a full snapshot of all system information at once.
+
+Frequently used commands also have short aliases: `ip` for `ips`, `arch` for `architecture`, `iface` for `interfaces`,
+and `all` for `everything`.
 
 ## Benefits
 
 mymy eliminates the need to remember multiple commands and their specific syntax, as well as searching through different
-files for specific information. Additionally, this tool is multi-platform, making it even more convenient for users
-across different operating systems (MacOS, Linux, Windows).
+files for specific information. Prebuilt packages are available for macOS and Linux; other platforms can install it
+via `cargo install`.
 
 ## Installation
 
@@ -87,16 +91,16 @@ server 1	8.8.8.8
 server 2	8.8.4.4
 
 $ my date
-Saturday, 8 April, 2023, week 14
+Saturday, 8 April, 2023, week 14/52
 
 $ my time
 20:20:02 +02:00
-+0.0672 seconds
+clock offset +0.0093s (in sync)
 
 $ my datetime
-Saturday, 8 April, 2023, week 14
+Saturday, 8 April, 2023, week 14/52
 20:20:02 +02:00
-+0.0684 seconds
+clock offset +0.0093s (in sync)
 
 $ my hostname
 MacBook-Pro.local
@@ -111,7 +115,7 @@ $ my os
 macOS 15.2 Sequoia
 
 $ my cpu
-Apple M1 Pro, 10 cores running at 3.2 GHz
+Apple M1 Pro, 10 cores (10 threads) running at 3.2 GHz
 
 $ my ram
 32.00 GiB installed, 18.50 GiB in use (57.8%)
@@ -120,12 +124,17 @@ $ my architecture
 aarch64
 
 $ my disks
-Macintosh HD, SSD, 142.50 GiB free of 460.43 GiB (30.9% free)
+Macintosh HD, SSD, 317.93 GiB used of 460.43 GiB (69.0%)
 
+# By default, loopback and link-local addresses are filtered out
 $ my interfaces
-en0	192.168.1.42
-en0	fe80::1a2b:3c4d:5e6f:7890
-lo0	127.0.0.1
+en0  192.168.1.42
+
+# Use --all to include loopback and link-local addresses
+$ my interfaces --all
+en0  192.168.1.42
+en0  fe80::1a2b:3c4d:5e6f:7890
+lo0  127.0.0.1
 
 $ my --format json hostname
 {
