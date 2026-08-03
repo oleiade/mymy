@@ -1,11 +1,10 @@
 use std::fmt::{Display, Formatter};
-use std::net::{IpAddr, SocketAddr};
+use std::net::IpAddr;
 
 use anyhow::{Context, Result, anyhow};
 use clap::ValueEnum;
-use hickory_proto::xfer::Protocol;
 use hickory_resolver::config::{NameServerConfig, ResolverConfig, ResolverOpts};
-use hickory_resolver::name_server::TokioConnectionProvider;
+use hickory_resolver::net::runtime::TokioRuntimeProvider;
 use hickory_resolver::{Resolver, system_conf};
 use itertools::Itertools;
 use local_ip_address::list_afinet_netifas;
@@ -32,20 +31,21 @@ impl Display for Ip {
 fn build_resolver(
     dns_server_host: &str,
     dns_server_port: u16,
-) -> Result<Resolver<TokioConnectionProvider>> {
-    let dns_server_addr = SocketAddr::new(dns_server_host.parse()?, dns_server_port);
-    let nameserver_config = NameServerConfig::new(dns_server_addr, Protocol::Udp);
+) -> Result<Resolver<TokioRuntimeProvider>> {
+    let mut nameserver_config = NameServerConfig::udp(dns_server_host.parse()?);
+    for connection in &mut nameserver_config.connections {
+        connection.port = dns_server_port;
+    }
     let resolver_config = ResolverConfig::from_parts(None, vec![], vec![nameserver_config]);
 
     let mut resolver_opts = ResolverOpts::default();
     resolver_opts.ndots = 1;
     resolver_opts.timeout = std::time::Duration::from_secs(2);
 
-    Ok(
-        Resolver::builder_with_config(resolver_config, TokioConnectionProvider::default())
-            .with_options(resolver_opts)
-            .build(),
-    )
+    Resolver::builder_with_config(resolver_config, TokioRuntimeProvider::default())
+        .with_options(resolver_opts)
+        .build()
+        .context("failed to build DNS resolver")
 }
 
 /// Queries the public IP address from the provided dns server.
@@ -86,10 +86,11 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
     match resolver.ipv4_lookup("myip.opendns.com").await {
         Ok(ipv4_response) => {
             let ipv4 = ipv4_response
+                .answers()
                 .iter()
-                .next()
+                .find_map(|record| record.data.ip_addr())
                 .context("public IP lookup returned no IPv4 records")?;
-            Ok(IpAddr::V4(**ipv4))
+            Ok(ipv4)
         }
         Err(ipv4_err) => {
             let ipv6_resolver = build_resolver(OPENDNS_SERVER_HOST_V6, dns_server_port)?;
@@ -98,10 +99,11 @@ pub async fn query_public_ip(dns_server_host: &str, dns_server_port: u16) -> Res
             match ipv6_response {
                 Ok(response) => {
                     let ipv6 = response
+                        .answers()
                         .iter()
-                        .next()
+                        .find_map(|record| record.data.ip_addr())
                         .context("public IP lookup returned no IPv6 records")?;
-                    Ok(IpAddr::V6(**ipv6))
+                    Ok(ipv6)
                 }
                 Err(ipv6_err) => Err(ipv4_err).context(format!(
                     "IPv4 public IP lookup failed and IPv6 fallback also failed: {ipv6_err}"
@@ -171,7 +173,7 @@ pub fn list_dns_servers() -> Result<Vec<DnsServer>> {
     let nameservers = conf
         .name_servers()
         .iter()
-        .map(|ns| ns.socket_addr.ip())
+        .map(|ns| ns.ip)
         .unique()
         .enumerate()
         .map(|(i, address)| DnsServer {
