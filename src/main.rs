@@ -350,7 +350,8 @@ struct Everything {
     #[serde(skip_serializing_if = "Option::is_none")]
     cpu: Option<system::Cpu>,
 
-    ram: system::Ram,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ram: Option<system::Ram>,
 }
 
 impl Display for Everything {
@@ -375,7 +376,9 @@ impl Display for Everything {
         if let Some(cpu) = &self.cpu {
             write_field(f, "cpu", cpu)?;
         }
-        write_field(f, "ram", &self.ram)?;
+        if let Some(ram) = &self.ram {
+            write_field(f, "ram", ram)?;
+        }
 
         // ── DATETIME ──
         write_section_header(f, "DATETIME")?;
@@ -694,7 +697,7 @@ async fn execute_command(command: &Commands) -> Result<CommandResult> {
         Commands::Interfaces { all } => handle_interfaces(*all),
         Commands::Disks => handle_disks(),
         Commands::Cpu => handle_cpu(),
-        Commands::Ram => Ok(handle_ram()),
+        Commands::Ram => handle_ram(),
         Commands::Everything => Ok(handle_everything().await),
         Commands::Completions { .. } => unreachable!("handled before execute_command"),
     }
@@ -798,8 +801,9 @@ fn handle_cpu() -> Result<CommandResult> {
     Ok(CommandResult::Cpu(cpus))
 }
 
-fn handle_ram() -> CommandResult {
-    CommandResult::Ram(system::ram())
+fn handle_ram() -> Result<CommandResult> {
+    let ram = system::ram().context("reading the system's memory failed")?;
+    Ok(CommandResult::Ram(ram))
 }
 
 /// Converts a `Result<T>` into `Option<T>`, printing a warning to stderr on error.
@@ -863,7 +867,7 @@ async fn handle_everything() -> CommandResult {
     });
     let disks = warn_on_err(storage::list_disks().context("listing disks"), "disks");
     let cpu = warn_on_err(system::cpus().context("listing CPUs"), "cpu");
-    let ram = system::ram();
+    let ram = warn_on_err(system::ram().context("reading memory"), "ram");
 
     CommandResult::Everything(Box::new(Everything {
         ips,

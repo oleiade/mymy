@@ -71,7 +71,7 @@ impl Display for OperatingSystem {
 /// returns the operating system the system is running
 pub fn os() -> Result<OperatingSystem> {
     let name = match System::long_os_version() {
-        Some(v) if !v.to_lowercase().contains("unknown") => v,
+        Ok(v) if !v.to_lowercase().contains("unknown") => v,
         _ => whoami::distro()?,
     };
 
@@ -131,7 +131,8 @@ impl Display for Cpu {
 /// returns the CPU of the system as a Cpu struct
 pub fn cpus() -> Result<Cpu> {
     let system =
-        System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::everything()));
+        System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::everything()))
+            .context("querying CPU information failed")?;
 
     let cpus = system.cpus();
     let reference_cpu = cpus
@@ -194,15 +195,20 @@ impl Display for Ram {
 }
 
 /// returns the RAM of the system as a Ram struct
-pub fn ram() -> Ram {
+///
+/// # Errors
+///
+/// Returns an error if the memory information cannot be queried.
+pub fn ram() -> Result<Ram> {
     let system = System::new_with_specifics(
         RefreshKind::nothing().with_memory(MemoryRefreshKind::everything()),
-    );
+    )
+    .context("querying memory information failed")?;
 
-    Ram {
+    Ok(Ram {
         total: system.total_memory(),
         used: system.used_memory(),
         free: system.free_memory(),
         available: system.available_memory(),
-    }
+    })
 }
