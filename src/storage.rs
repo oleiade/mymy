@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use anyhow::{Error, Result};
+use anyhow::{Context, Error, Result};
 use colored::Colorize;
 use itertools::Itertools;
 use serde::Serialize;
@@ -31,7 +31,7 @@ use crate::format::{Percentage, human_readable_size};
 /// # }
 /// ```
 pub fn list_disks() -> Result<Vec<DiskInfo>> {
-    let disks = Disks::new_with_refreshed_list();
+    let disks = Disks::new_with_refreshed_list().context("listing disks")?;
 
     disks
         .iter()
